@@ -1,20 +1,13 @@
 <?php
-session_start();
+$host = "localhost";
+$user = "root";
+$password = "";
+$database = "warehouse_system"; // replace with your actual DB name
 
-class DBConn {
-    private $serverhost = "localhost";
-    private $username = "root";
-    private $password = "";
-    private $database = "wmsfinal";
-    private $conn;
+$conn = new mysqli($host, $user, $password, $database);
 
-    private function __construct()
-    {
-        $this->conn = new mysqli($this->serverhost, $this->username, $this->password, $this->database);
-
-        if($this->conn->error) {
-        die("Connection error." . $this->conn->error);
-        }
-    }
+// Check connection
+if ($conn->connect_error) {
+    die("Connection failed: " . $conn->connect_error);
 }
 ?>
