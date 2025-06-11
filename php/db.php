@@ -6,9 +6,9 @@ class DBConn {
     private $username = "root";
     private $password = "";
     private $database = "wmsfinal";
-    private $conn;
+    public $conn;
 
-    private function __construct()
+    public function __construct()
     {
         $this->conn = new mysqli($this->serverhost, $this->username, $this->password, $this->database);
 

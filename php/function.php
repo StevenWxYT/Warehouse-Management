@@ -1,16 +1,19 @@
 <?php
 include "db.php";
 
-class DBFunc {
-    private $conn;
+class DBFunc
+{
+    public $conn;
 
-    public function __construct($db) {
+    public function __construct($db)
+    {
         $this->conn = $db;
     }
 
-    public function registerUser($username, $password, $role) {
+    public function registerUser($username, $password, $role)
+    {
         $pwd = password_hash($password, PASSWORD_DEFAULT);
-        
+
         $stmt = $this->conn->prepare("INSERT INTO users (username, password, role) VALUES (?, ?, ?)");
         if ($stmt) {
             $stmt->bind_param('sss', $username, $pwd, $role);
@@ -56,33 +59,35 @@ class DBFunc {
     //     $stmt->close();
     // }
 
-    public function loginUser($username, $password) {
-    $stmt = $this->conn->prepare("SELECT * FROM users WHERE username = ?");
-    $stmt->bind_param('s', $username);
-    $stmt->execute();
-    $result = $stmt->get_result();
+    public function loginUser($username, $password)
+    {
+        $stmt = $this->conn->prepare("SELECT * FROM users WHERE username = ?");
+        $stmt->bind_param('s', $username);
+        $stmt->execute();
+        $result = $stmt->get_result();
 
-    if ($result && $result->num_rows == 1) {
-        $user = $result->fetch_assoc();
-        if (password_verify($password, $user['password'])) {
-            session_start();
-            $_SESSION['username'] = $user['username'];
-            $_SESSION['role'] = $user['role'];
+        if ($result && $result->num_rows == 1) {
+            $user = $result->fetch_assoc();
+            if (password_verify($password, $user['password'])) {
+                session_start();
+                $_SESSION['username'] = $user['username'];
+                $_SESSION['role'] = $user['role'];
 
-            // All users are redirected to dashboard.php
-            header('Location: dashboard.php');
-            exit();
+                // All users are redirected to dashboard.php
+                header('Location: dashboard.php');
+                exit();
+            } else {
+                echo "Invalid password.";
+            }
         } else {
-            echo "Invalid password.";
+            echo "User not found.";
         }
-    } else {
-        echo "User not found.";
+
+        $stmt->close();
     }
 
-    $stmt->close();
-}
-
-    public function logoutUser() {
+    public function logoutUser()
+    {
         session_start();
         session_unset();
         session_destroy();
@@ -90,14 +95,16 @@ class DBFunc {
         exit();
     }
 
-    public function insertWarehouse($id, $image, $sku, $rack, $zone, $name, $dimensions, $color, $weight, $quantity, $description, $price) {
+    public function insertWarehouse($id, $image, $sku, $rack, $zone, $name, $dimensions, $color, $weight, $quantity, $description, $price)
+    {
         $stmt = $this->conn->prepare("INSERT INTO warehouse (id, image, sku, rack, zone, name, dimensions, colour, weight, quantity, description, price) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
         $stmt->bind_param("issssssssisd", $id, $image, $sku, $rack, $zone, $name, $dimensions, $color, $weight, $quantity, $description, $price);
         $stmt->execute();
         $stmt->close();
     }
 
-    public function viewWarehouse($id) {
+    public function viewWarehouse($id)
+    {
         $stmt = $this->conn->prepare("SELECT * FROM warehouse WHERE id = ?");
         $stmt->bind_param("i", $id);
         $stmt->execute();
@@ -107,20 +114,76 @@ class DBFunc {
         return $data;
     }
 
-    public function updateWarehouse($id, $image, $sku, $rack, $zone, $name, $dimensions, $color, $weight, $quantity, $description, $price) {
+    public function updateWarehouse($id, $image, $sku, $rack, $zone, $name, $dimensions, $color, $weight, $quantity, $description, $price)
+    {
         $stmt = $this->conn->prepare("UPDATE warehouse SET image = ?, sku = ?, rack = ?, zone = ?, name = ?, dimensions = ?, colour = ?, weight = ?, quantity = ?, description = ?, price = ? WHERE id = ?");
         $stmt->bind_param("sssssssdisdi", $image, $sku, $rack, $zone, $name, $dimensions, $color, $weight, $quantity, $description, $price, $id);
         $stmt->execute();
         $stmt->close();
     }
 
-    public function deleteWarehouse($id) {
+    public function deleteWarehouse($id)
+    {
         $stmt = $this->conn->prepare("DELETE FROM warehouse WHERE id = ?");
         $stmt->bind_param("i", $id);
         $stmt->execute();
         $stmt->close();
     }
 
-    // public function getWarehouse($id) {}
+    public function getTop10BestSelling()
+    {
+        $stmt = $this->conn->prepare("
+        SELECT w.id, w.name, w.sku, w.image, SUM(s.quantity_sold) AS total_sold
+        FROM warehouse w
+        JOIN sales s ON w.id = s.warehouse_id
+        GROUP BY w.id
+        ORDER BY total_sold DESC
+        LIMIT 10
+    ");
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $top10 = $result->fetch_all(MYSQLI_ASSOC);
+        $stmt->close();
+        return $top10;
+    }
+
+    // public function getLowStockItems($threshold = 10)
+    // {
+    //     $stmt = $this->conn->prepare("SELECT * FROM warehouse WHERE quantity <= ?");
+    //     $stmt->bind_param("i", $threshold);
+    //     $stmt->execute();
+    //     $result = $stmt->get_result();
+    //     $items = $result->fetch_all(MYSQLI_ASSOC);
+    //     $stmt->close();
+    //     return $items;
+    // }
+
+    // public function getItemsByZone($zone)
+    // {
+    //     $stmt = $this->conn->prepare("SELECT * FROM warehouse WHERE zone = ?");
+    //     $stmt->bind_param("s", $zone);
+    //     $stmt->execute();
+    //     $result = $stmt->get_result();
+    //     $items = $result->fetch_all(MYSQLI_ASSOC);
+    //     $stmt->close();
+    //     return $items;
+    // }
+
+    // public function getRecentSales($limit = 10)
+    // {
+    //     $stmt = $this->conn->prepare("
+    //     SELECT w.id, w.name, s.sale_date, s.quantity_sold
+    //     FROM sales s
+    //     JOIN warehouse w ON s.warehouse_id = w.id
+    //     ORDER BY s.sale_date DESC
+    //     LIMIT ?
+    // ");
+    //     $stmt->bind_param("i", $limit);
+    //     $stmt->execute();
+    //     $result = $stmt->get_result();
+    //     $recent = $result->fetch_all(MYSQLI_ASSOC);
+    //     $stmt->close();
+    //     return $recent;
+    // }
 }
 ?>
