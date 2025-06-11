@@ -11,7 +11,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     }
 
     // 查询数据库获取用户
-    $stmt = $conn->prepare("SELECT password, role FROM users WHERE username = ?");
+    $stmt = $conn->prepare("SELECT username, role FROM username WHERE username = ?");
     if ($stmt) {
         $stmt->bind_param('s', $username);
         $stmt->execute();
@@ -51,63 +51,52 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Login Page</title>
   <style>
-    .login-container button {
-  width: 100%;
-  padding: 12px;
-  background-color: #4CAF50;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  font-weight: bold;
-  transition: all 0.3s ease;
-  box-shadow: 0 0 0 transparent;
-}
-
-.login-container button:hover {
-  background-color: #45a049;
-  box-shadow: 0 0 15px rgba(76, 175, 80, 0.6);
-}
-.login-container button:hover {
-  background-color: #45a049;
-  box-shadow: 0 0 18px rgba(76, 175, 80, 0.7);
-  transform: scale(1.03);
-}
+/* 🌈 流动渐变背景 */
 body {
   margin: 0;
   font-family: Arial, sans-serif;
-  background: url('https://i.imgur.com/zN1Z2gL.jpg') no-repeat center center fixed; /* 🎨 猫咪插画背景 */
-  background-size: cover;
+  background: linear-gradient(120deg, #a1c4fd, #c2e9fb, #d4fc79, #96e6a1);
+  background-size: 400% 400%;
+  animation: gradientFlow 18s ease infinite;
+  height: 100vh;
+  overflow: hidden;
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 100vh;
-  overflow: hidden;
   position: relative;
 }
 
-/* 🐾 背景猫爪图案 */
-.decor {
-  position: absolute;
-  width: 60px;
-  height: 60px;
-  background-image: url('https://cdn-icons-png.flaticon.com/512/616/616408.png'); /* ✅ 真正的猫爪图标 */
-  background-size: contain;
-  background-repeat: no-repeat;
-  opacity: 0.3;
-  transition: transform 0.6s ease, opacity 0.3s ease;
-}
-.decor:hover {
-  transform: rotate(360deg) scale(1.1);
-  opacity: 0.6;
+/* 🎞️ 背景动画 */
+@keyframes gradientFlow {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
 }
 
-/* 猫爪图案位置设置 */
-.decor.one { top: 10%; left: 10%; }
-.decor.two { top: 20%; right: 15%; }
-.decor.three { bottom: 15%; left: 20%; }
-.decor.four { bottom: 10%; right: 10%; }
+/* ☁️ 轻微浮动效果给 container（可选） */
+.login-container {
+  background: rgba(255, 255, 255, 0.95);
+  padding: 40px;
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  width: 320px;
+  text-align: center;
+  z-index: 1;
+  animation: floaty 6s ease-in-out infinite;
+}
 
+@keyframes floaty {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+
+@keyframes gradientFlow {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* 📦 登入容器 */
 .login-container {
   background: rgba(255, 255, 255, 0.95);
   padding: 40px;
@@ -123,7 +112,7 @@ body {
   color: #333;
 }
 
-/* 🧊 输入框动画 */
+/* 🧊 输入框样式 */
 .login-container input {
   width: 100%;
   padding: 12px;
@@ -132,31 +121,29 @@ body {
   border-radius: 8px;
   transition: all 0.3s ease;
 }
+
 .login-container input:focus {
   border-color: #4CAF50;
   box-shadow: 0 0 10px rgba(76, 175, 80, 0.5);
   outline: none;
 }
 
-/* 💡 按钮亮光 + 动画 */
+/* ✨ 渐变按钮 */
 .login-container button {
   width: 100%;
   padding: 12px;
-  background-color: #4CAF50;
+  background: linear-gradient(135deg, #6fcf97, #56cc9d);
   color: white;
   border: none;
   border-radius: 8px;
   cursor: pointer;
   font-weight: bold;
-  transition: all 0.3s ease;
-  box-shadow: 0 0 0 transparent;
-}
-.login-container button:hover {
-  background-color: #45a049;
-  box-shadow: 0 0 15px rgba(76, 175, 80, 0.6);
-  transform: scale(1.03);
+  transition: background 0.3s ease;
 }
 
+.login-container button:hover {
+  background: linear-gradient(135deg, #56cc9d, #45a077);
+}
 
   </style>
 </head>
