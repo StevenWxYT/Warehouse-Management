@@ -65,7 +65,7 @@ class DBFunc {
     }
 
     public function insertWarehouse($id, $image, $sku, $rack, $zone, $name, $dimensions, $color, $weight, $quantity, $description, $price) {
-        $stmt = $this->conn->prepare("INSERT INTO warehouse (id, image, sku, rack, zone, name, dimensions, color, weight, quantity, description, price) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        $stmt = $this->conn->prepare("INSERT INTO warehouse (id, image, sku, rack, zone, name, dimensions, colour, weight, quantity, description, price) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
         $stmt->bind_param("issssssssiss", $id, $image, $sku, $rack, $zone, $name, $dimensions, $color, $weight, $quantity, $description, $price);
         $stmt->execute();
     }
@@ -77,7 +77,7 @@ class DBFunc {
     }
 
     public function updateWarehouse($id, $image, $sku, $rack, $zone, $name, $dimensions, $color, $weight, $quantity, $description, $price) {
-        $stmt = $this->conn->prepare("UPDATE warehouse SET image, sku, rack, zone, name, dimensions, color, weight, quantity, description, price WHERE id = ?");
+        $stmt = $this->conn->prepare("UPDATE warehouse SET image, sku, rack, zone, name, dimensions, colour, weight, quantity, description, price WHERE id = ?");
         $stmt->bind_param("issssssssiss", $id, $image, $sku, $rack, $zone, $name, $dimensions, $color, $weight, $quantity, $description, $price);
         $stmt->execute();
     }
