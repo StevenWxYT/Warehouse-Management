@@ -66,28 +66,35 @@ class DBFunc {
 
     public function insertWarehouse($id, $image, $sku, $rack, $zone, $name, $dimensions, $color, $weight, $quantity, $description, $price) {
         $stmt = $this->conn->prepare("INSERT INTO warehouse (id, image, sku, rack, zone, name, dimensions, colour, weight, quantity, description, price) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-        $stmt->bind_param("issssssssiss", $id, $image, $sku, $rack, $zone, $name, $dimensions, $color, $weight, $quantity, $description, $price);
+        $stmt->bind_param("issssssssisd", $id, $image, $sku, $rack, $zone, $name, $dimensions, $color, $weight, $quantity, $description, $price);
         $stmt->execute();
+        $stmt->close();
     }
 
     public function viewWarehouse($id) {
         $stmt = $this->conn->prepare("SELECT * FROM warehouse WHERE id = ?");
         $stmt->bind_param("i", $id);
         $stmt->execute();
+        $result = $stmt->get_result();
+        $data = $result->fetch_assoc(); // or fetch_all(MYSQLI_ASSOC) for multiple
+        $stmt->close();
+        return $data;
     }
 
     public function updateWarehouse($id, $image, $sku, $rack, $zone, $name, $dimensions, $color, $weight, $quantity, $description, $price) {
-        $stmt = $this->conn->prepare("UPDATE warehouse SET image, sku, rack, zone, name, dimensions, colour, weight, quantity, description, price WHERE id = ?");
-        $stmt->bind_param("issssssssiss", $id, $image, $sku, $rack, $zone, $name, $dimensions, $color, $weight, $quantity, $description, $price);
+        $stmt = $this->conn->prepare("UPDATE warehouse SET image = ?, sku = ?, rack = ?, zone = ?, name = ?, dimensions = ?, colour = ?, weight = ?, quantity = ?, description = ?, price = ? WHERE id = ?");
+        $stmt->bind_param("sssssssdisdi", $image, $sku, $rack, $zone, $name, $dimensions, $color, $weight, $quantity, $description, $price, $id);
         $stmt->execute();
+        $stmt->close();
     }
 
     public function deleteWarehouse($id) {
         $stmt = $this->conn->prepare("DELETE FROM warehouse WHERE id = ?");
         $stmt->bind_param("i", $id);
         $stmt->execute();
+        $stmt->close();
     }
 
-    public function getWarehouse($id) {}
+    // public function getWarehouse($id) {}
 }
 ?>
