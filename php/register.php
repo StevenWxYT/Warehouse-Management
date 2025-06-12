@@ -1,156 +1,180 @@
 <?php
 include 'db.php'; // 连接数据库
 
+$message = ''; // 保存提示信息
+
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $username = trim($_POST['username'] ?? '');
+    $email = trim($_POST['email'] ?? '');
     $password = trim($_POST['password'] ?? '');
     $confirm_password = trim($_POST['confirm_password'] ?? '');
 
     // 检查是否为空
-    if (empty($username) || empty($password) || empty($confirm_password)) {
-        echo "❌ Please fill in all fields.";
-        exit();
+    if (empty($username) || empty($email) || empty($password) || empty($confirm_password)) {
+        $message = "❌ Please fill in all fields.";
     }
-
-    // 检查密码一致性
-    if ($password !== $confirm_password) {
-        echo "❌ Passwords do not match.";
-        exit();
+    // 检查 email 格式
+    elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $message = "❌ Invalid email format.";
     }
-
-    // 检查用户名是否已存在
-    $checkStmt = $conn->prepare("SELECT id FROM wmsregister WHERE username = ?");
-    if ($checkStmt) {
-        $checkStmt->bind_param("s", $username);
-        $checkStmt->execute();
-        $checkStmt->store_result();
-
-        if ($checkStmt->num_rows > 0) {
-            echo "❌ Username already exists.";
-            $checkStmt->close();
-            exit();
-        }
-        $checkStmt->close();
+    // 检查密码一致
+    elseif ($password !== $confirm_password) {
+        $message = "❌ Passwords do not match.";
     } else {
-        echo "❌ Database error (checkStmt): " . htmlspecialchars($conn->error);
-        exit();
-    }
+        // 检查用户名是否存在
+        $checkStmt = $conn->prepare("SELECT id FROM wmsregister WHERE username = ?");
+        if ($checkStmt) {
+            $checkStmt->bind_param("s", $username);
+            $checkStmt->execute();
+            $checkStmt->store_result();
 
-    // 加密密码
-    $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
+            if ($checkStmt->num_rows > 0) {
+                $message = "❌ Username already exists.";
+                $checkStmt->close();
+            } else {
+                $checkStmt->close();
 
-    // 插入新用户
-    $insertStmt = $conn->prepare("INSERT INTO wmsregister (username, password, confirm_password) VALUES (?, ?, 'user')");
-    if ($insertStmt) {
-        $insertStmt->bind_param("ss", $username, $hashedPassword);
+                // 加密密码
+                $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
 
-        if ($insertStmt->execute()) {
-            echo "<script>alert('✅Register failed')</script>";
-            header("Location:.php");
+                // 插入新用户
+                $insertStmt = $conn->prepare("INSERT INTO wmsregister (username, email, password) VALUES (?, ?, ?)");
+                if ($insertStmt) {
+                    $insertStmt->bind_param("sss", $username, $email, $hashedPassword);
+
+                    if ($insertStmt->execute()) {
+                        header("Refresh: 2; URL=dashboard.php");
+                        $message = "✅ Registration successful! You may now log in.";
+                    } else {
+                        $message = "❌ Registration failed: " . htmlspecialchars($insertStmt->error);
+                    }
+
+                    $insertStmt->close();
+                } else {
+                    $message = "❌ Database error (insertStmt): " . htmlspecialchars($conn->error);
+                }
+            }
         } else {
-            echo "❌ Registration failed: " . htmlspecialchars($insertStmt->error);
+            $message = "❌ Database error (checkStmt): " . htmlspecialchars($conn->error);
         }
-
-        $insertStmt->close();
-    } else {
-        echo "❌ Database error (insertStmt): " . htmlspecialchars($conn->error);
     }
 }
 ?>
 
-
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Register</title>
-    <style>
-/* 🌈 背景渐变和流动效果 */
-body {
-    margin: 0;
-    padding: 0;
-    height: 100vh;
-    font-family: Arial, sans-serif;
-    background: linear-gradient(120deg, #a1c4fd, #c2e9fb, #d4fc79, #96e6a1);
-    background-size: 400% 400%;
-    animation: gradientFlow 18s ease infinite;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Register</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: linear-gradient(120deg, #fbc2eb, #a6c1ee);
+      background-size: 400% 400%;
+      animation: gradientFlow 18s ease infinite;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
 
-/* 🎞️ 背景渐变动画 */
-@keyframes gradientFlow {
-    0% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
-    100% { background-position: 0% 50%; }
-}
+    @keyframes gradientFlow {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
 
-/* 📦 表单容器 */
-form {
-    background: rgba(255, 255, 255, 0.95);
-    padding: 40px;
-    border-radius: 16px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-    width: 300px;
-    text-align: center;
-    animation: floaty 6s ease-in-out infinite;
-}
+    .register-container {
+      background: rgba(255, 255, 255, 0.95);
+      padding: 40px;
+      border-radius: 16px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+      width: 340px;
+      text-align: center;
+      z-index: 1;
+      animation: floaty 6s ease-in-out infinite;
+    }
 
-/* ☁️ 浮动动画效果（可选） */
-@keyframes floaty {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-5px); }
-}
+    @keyframes floaty {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-5px); }
+    }
 
-/* ✨ 输入框样式 */
-input {
-    width: 100%;
-    padding: 12px;
-    margin-bottom: 15px;
-    border: 1px solid #ccc;
-    border-radius: 8px;
-    transition: all 0.3s ease;
-}
-input:focus {
-    border-color: #4CAF50;
-    box-shadow: 0 0 12px rgba(76, 175, 80, 0.5);
-    outline: none;
-}
+    .register-container h2 {
+      margin-bottom: 20px;
+      color: #333;
+    }
 
-/* 🔘 按钮样式 */
-button {
-    width: 100%;
-    padding: 12px;
-    background: #007bff;
-    border: none;
-    color: white;
-    font-size: 16px;
-    font-weight: bold;
-    cursor: pointer;
-    border-radius: 8px;
-    transition: all 0.3s ease;
-    box-shadow: 0 0 0 transparent;
-}
+    .register-container input {
+      width: 100%;
+      padding: 12px;
+      margin: 10px 0;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      transition: all 0.3s ease;
+    }
 
-/* ✨ 按钮悬停效果 */
-button:hover {
-    background: #0056b3;
-    transform: scale(1.05);
-    box-shadow: 0 0 15px rgba(0, 123, 255, 0.6);
-}
+    .register-container input:focus {
+      border-color: #4CAF50;
+      box-shadow: 0 0 10px rgba(76, 175, 80, 0.5);
+      outline: none;
+    }
 
-    </style>
+    .register-container button {
+      width: 100%;
+      padding: 12px;
+      background: linear-gradient(135deg, #ff758c, #ff7eb3);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: background 0.3s ease;
+    }
+
+    .register-container button:hover {
+      background: linear-gradient(135deg, #ff7eb3, #e84393);
+    }
+
+    .message {
+      color: #d8000c;
+      background-color: #ffdddd;
+      border-left: 6px solid #f44336;
+      padding: 12px;
+      margin-bottom: 15px;
+      border-radius: 6px;
+      font-weight: bold;
+    }
+
+    .message.success {
+      color: #155724;
+      background-color: #d4edda;
+      border-left-color: #28a745;
+    }
+  </style>
 </head>
 <body>
 
-<form action="register.php" method="POST">
+  <div class="register-container">
     <h2>Register</h2>
-    <input type="text" name="username" placeholder="username" required>
-    <input type="password" name="password" placeholder="password" required>
-    <input type="password" name="confirm_password" placeholder="confirm_password" required>
-    <button type="submit">Register</button>
-</form>
 
+    <?php if (!empty($message)) : ?>
+      <div class="message <?= strpos($message, '✅') === 0 ? 'success' : '' ?>">
+        <?= $message ?>
+      </div>
+    <?php endif; ?>
+
+    <form method="POST" action="register.php">
+      <input type="text" name="username" placeholder="Username" required>
+      <input type="email" name="email" placeholder="Email" required>
+      <input type="password" name="password" placeholder="Password" required>
+      <input type="password" name="confirm_password" placeholder="Confirm Password" required>
+      <button type="submit">Register</button>
+    </form>
+  </div>
 
 </body>
 </html>

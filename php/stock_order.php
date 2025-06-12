@@ -1,3 +1,15 @@
+
+<?php
+
+include_once('db.php');
+
+$item_name =$_POST['item_name'];
+$quantity = $_POST['quantity'];
+
+
+
+?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -142,6 +154,7 @@
   <div class="order-container">
   <h2>Order Stock</h2>
   <form action="stock_order.php" method="POST" enctype="multipart/form-data">
+    <input type="file" name="image" id="">
     <input type="text" name="item_name" placeholder="Item Name" required>
     <input type="number" name="quantity" placeholder="Quantity" min="1" required>
     <textarea name="note" placeholder="Additional Notes (optional)" rows="3"></textarea>
@@ -150,7 +163,7 @@
     <!-- 按钮包裹容器 -->
     <div class="button-group">
       <button type="submit" class="add-button">Add Item</button>
-      <button type="button" class="add-button" onclick="location.href='dashboard.php'">Go back</button>
+      <button type="button" class="add-button" onclick="location.href='stock_manage.php'">Go back</button>
     </div>
   </form>
 </div>
@@ -160,45 +173,7 @@
     <div class="product-list">
       <h2>Available Stocks</h2>
 
-      <div class="product-item">
-        <img src="https://via.placeholder.com/70?text=iPhone" alt="iPhone">
-        <div class="product-item-details">
-          <h4>Apple iPhone 14</h4>
-          <p>Quantity: 25</p>
-        </div>
-      </div>
-
-      <div class="product-item">
-        <img src="https://via.placeholder.com/70?text=Galaxy" alt="Galaxy">
-        <div class="product-item-details">
-          <h4>Samsung Galaxy S23</h4>
-          <p>Quantity: 18</p>
-        </div>
-      </div>
-
-      <div class="product-item">
-        <img src="https://via.placeholder.com/70?text=XPS" alt="Dell XPS">
-        <div class="product-item-details">
-          <h4>Dell XPS 13 Laptop</h4>
-          <p>Quantity: 10</p>
-        </div>
-      </div>
-
-      <div class="product-item">
-        <img src="https://via.placeholder.com/70?text=Mouse" alt="Mouse">
-        <div class="product-item-details">
-          <h4>Logitech Mouse</h4>
-          <p>Quantity: 55</p>
-        </div>
-      </div>
-
-      <div class="product-item">
-        <img src="https://via.placeholder.com/70?text=Camera" alt="Camera">
-        <div class="product-item-details">
-          <h4>Canon DSLR Camera</h4>
-          <p>Quantity: 6</p>
-        </div>
-      </div>
+      
     </div>
   </div>
 </body>

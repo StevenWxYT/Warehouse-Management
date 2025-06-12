@@ -1,64 +1,177 @@
+<?php
+include_once('db.php');
+
+$items_sql = "SELECT * FROM `wmsitem`";
+$query = mysqli_query($conn, $items_sql);
+
+$category_sql = "SELECT * FROM `wmscategory`";
+$category_sql = mysqli_query($conn, $category_sql);
+?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Manage Stock</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest"></script>
   <style>
     * {
+      margin: 0;
+      padding: 0;
       box-sizing: border-box;
+      font-family: 'Inter', sans-serif;
     }
 
     body {
-      margin: 0;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: linear-gradient(-45deg, #f6d365, #fda085, #ff9a9e, #fad0c4);
-      background-size: 400% 400%;
-      animation: gradientBG 12s ease infinite;
-      padding: 40px 20px;
+      height: 100vh;
       display: flex;
-      justify-content: center;
+      background: linear-gradient(-45deg, #ff9a9e, #fad0c4, #fbc2eb, #a18cd1);
+      background-size: 400% 400%;
+      animation: gradientBG 15s ease infinite;
     }
 
     @keyframes gradientBG {
-      0% {
-        background-position: 0% 50%;
-      }
-      50% {
-        background-position: 100% 50%;
-      }
-      100% {
-        background-position: 0% 50%;
-      }
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    .sidebar {
+      background-color: #ffffffcc;
+      backdrop-filter: blur(10px);
+      width: 240px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      border-right: 1px solid #ddd;
+      transition: all 0.3s ease;
+      position: relative;
+    }
+
+    .sidebar.collapsed {
+      width: 60px;
+      padding: 20px 10px;
+    }
+
+    .sidebar button {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: #f8f8f8;
+      border: none;
+      cursor: pointer;
+      font-size: 15px;
+      padding: 12px 16px;
+      border-radius: 12px;
+      color: #333;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+      transition: background 0.3s ease, transform 0.2s ease;
+    }
+
+    .sidebar button:hover {
+      background-color: #e4e4ff;
+      transform: translateX(4px);
+    }
+
+    .sidebar.collapsed button span {
+      display: none;
+    }
+
+    .sidebar-toggle {
+      position: absolute;
+      top: 10px;
+      right: -16px;
+      background-color: #6c63ff;
+      border: none;
+      color: white;
+      border-radius: 50%;
+      width: 32px;
+      height: 32px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 8px rgba(0,0,0,0.1);
+      z-index: 10;
+    }
+
+    .auth-buttons {
+      position: absolute;
+      bottom: 20px;
+      left: 20px;
+      right: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .auth-buttons button {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: linear-gradient(135deg, #a18cd1, #fbc2eb);
+      border: none;
+      cursor: pointer;
+      font-size: 15px;
+      padding: 12px 16px;
+      border-radius: 12px;
+      color: white;
+      font-weight: 600;
+      box-shadow: 0 6px 16px rgba(0,0,0,0.08);
+      transition: background 0.3s ease, transform 0.2s ease;
+    }
+
+    .auth-buttons button:hover {
+      background: linear-gradient(135deg, #8e7be5, #f4aee3);
+      transform: translateY(-2px);
+    }
+
+    .sidebar.collapsed .auth-buttons span {
+      display: none;
+    }
+
+    .sidebar.collapsed .auth-buttons button {
+      justify-content: center;
+    }
+
+    .container {
+      flex: 1;
+      padding: 40px;
+      overflow-y: auto;
     }
 
     .stock-container {
-      width: 100%;
-      max-width: 1300px;
-      background: #fff;
+      max-width: 1200px;
+      margin: auto;
+      background-color: #ffffffcc;
       padding: 40px;
-      border-radius: 24px;
-      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
+      border-radius: 16px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      backdrop-filter: blur(8px);
     }
 
     h2 {
       text-align: center;
+      font-size: 32px;
       color: #333;
       margin-bottom: 30px;
     }
 
     .controls {
       display: flex;
+      flex-wrap: wrap;
       justify-content: flex-start;
+      align-items: center;
       gap: 15px;
       margin-bottom: 30px;
-      flex-wrap: wrap;
-      align-items: center;
     }
 
     .controls input,
     .controls select {
-      padding: 12px;
+      padding: 12px 16px;
       border-radius: 10px;
       border: 1px solid #ccc;
       font-size: 15px;
@@ -67,13 +180,14 @@
       transition: box-shadow 0.3s ease;
     }
 
-    .controls input:hover {
-      box-shadow: 0 0 8px #fda085;
+    .controls input:hover,
+    .controls select:hover {
+      box-shadow: 0 0 8px #a18cd1;
     }
 
     .add-button {
       padding: 12px 20px;
-      background-color: #ff7e5f;
+      background-color: #6c63ff;
       color: white;
       border: none;
       border-radius: 10px;
@@ -83,13 +197,13 @@
     }
 
     .add-button:hover {
-      background-color: #eb5e3b;
+      background-color: #574fd6;
       transform: scale(1.05);
     }
 
     .stock-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
       gap: 25px;
     }
 
@@ -130,84 +244,75 @@
     .hidden {
       display: none !important;
     }
+
+    .sidebar i {
+      width: 20px;
+      height: 20px;
+    }
   </style>
 </head>
 <body>
-  <div class="stock-container">
-    <h2>Manage Stock</h2>
+  <div class="sidebar" id="sidebar">
+    <button class="sidebar-toggle" onclick="toggleSidebar()">
+      <i data-lucide="chevron-left"></i>
+    </button>
+    <button onclick="window.location.href='stock_quantity.php'">
+      <i data-lucide="package"></i><span>View Stock Quantity</span>
+    </button>
+    <button onclick="window.location.href='order_history.php'">
+      <i data-lucide="history"></i><span>View Order History</span>
+    </button>
+    <button onclick="window.location.href='stock_order.php'">
+      <i data-lucide="shopping-cart"></i><span>Order Stocks</span>
+    </button>
 
-    <div class="controls">
-      <button class="add-button" onclick="location.href='stock_order.php'">Add Item</button>
-      <select id="categoryFilter">
-        <option value="all">All Categories</option>
-        <option value="Phone">Phone</option>
-        <option value="Laptop">Laptop</option>
-        <option value="Camera">Camera</option>
-        <option value="Accessory">Accessory</option>
-      </select>
-      <input type="text" id="searchInput" placeholder="Search by name or code...">
+    <!-- 认证按钮 -->
+    <div class="auth-buttons">
+      <button onclick="window.location.href='login.php'">
+        <i data-lucide="log-in"></i><span>Login</span>
+      </button>
+      <button onclick="window.location.href='register.php'">
+        <i data-lucide="user-plus"></i><span>Register</span>
+      </button>
+      <button onclick="window.location.href='logout.php'">
+        <i data-lucide="log-out"></i><span>Logout</span>
+      </button>
     </div>
+  </div>
 
-    <div class="stock-grid" id="stockGrid">
-      <!-- Stock Cards (same as before) -->
-      <div class="stock-card" data-category="Phone">
-        <img src="cat1.jpeg" alt="iPhone 14">
-        <div class="stock-info">
-          <h3>Apple iPhone 14</h3>
-          <p><strong>Quantity:</strong> 25</p>
-          <p><strong>Item Code:</strong> IPH14-001</p>
-          <p><strong>Time:</strong> 10:30 AM</p>
-          <p><strong>Date:</strong> 2025-06-11</p>
-        </div>
+  <div class="container">
+    <div class="stock-container">
+      <h2>Manage Stock</h2>
+      <div class="controls">
+        <button class="add-button" onclick="location.href='stock_order.php'">Add Item</button>
+        <select id="categoryFilter">
+          <option value="all">All Categories</option>
+          <?php while($row = mysqli_fetch_assoc($category_sql)): ?>
+            <option value="<?=htmlspecialchars($row['category'])?>"><?=htmlspecialchars($row['category'])?></option>
+          <?php endwhile; ?>
+        </select>
+        <input type="text" id="searchInput" placeholder="Search by name or code...">
       </div>
 
-      <div class="stock-card" data-category="Phone">
-        <img src="https://via.placeholder.com/400x180?text=GalaxyS23" alt="Galaxy S23">
-        <div class="stock-info">
-          <h3>Samsung Galaxy S23</h3>
-          <p><strong>Quantity:</strong> 18</p>
-          <p><strong>Item Code:</strong> SAMS23-002</p>
-          <p><strong>Time:</strong> 09:45 AM</p>
-          <p><strong>Date:</strong> 2025-06-11</p>
-        </div>
-      </div>
-
-      <div class="stock-card" data-category="Laptop">
-        <img src="https://via.placeholder.com/400x180?text=DellXPS13" alt="Dell XPS 13">
-        <div class="stock-info">
-          <h3>Dell XPS 13 Laptop</h3>
-          <p><strong>Quantity:</strong> 10</p>
-          <p><strong>Item Code:</strong> DELLXPS13-003</p>
-          <p><strong>Time:</strong> 11:00 AM</p>
-          <p><strong>Date:</strong> 2025-06-11</p>
-        </div>
-      </div>
-
-      <div class="stock-card" data-category="Accessory">
-        <img src="https://via.placeholder.com/400x180?text=Mouse" alt="Mouse">
-        <div class="stock-info">
-          <h3>Logitech Mouse</h3>
-          <p><strong>Quantity:</strong> 55</p>
-          <p><strong>Item Code:</strong> LOGI-MSE-004</p>
-          <p><strong>Time:</strong> 12:15 PM</p>
-          <p><strong>Date:</strong> 2025-06-11</p>
-        </div>
-      </div>
-
-      <div class="stock-card" data-category="Camera">
-        <img src="https://via.placeholder.com/400x180?text=Canon+Camera" alt="Canon Camera">
-        <div class="stock-info">
-          <h3>Canon DSLR Camera</h3>
-          <p><strong>Quantity:</strong> 6</p>
-          <p><strong>Item Code:</strong> CANON-DSLR-005</p>
-          <p><strong>Time:</strong> 01:30 PM</p>
-          <p><strong>Date:</strong> 2025-06-11</p>
-        </div>
+      <div class="stock-grid" id="stockGrid">
+        <?php while ($item = mysqli_fetch_assoc($query)): ?>
+          <div class="stock-card" data-category="<?=htmlspecialchars($item['category'])?>">
+            <img src="<?=htmlspecialchars($item['category'])?>" alt="<?=htmlspecialchars($item['item_name'])?>">
+            <div class="stock-info">
+              <h3><?=htmlspecialchars($item['item_name'])?></h3>
+              <p><strong>Quantity:</strong> <?=htmlspecialchars($item['quantity'])?></p>
+              <p><strong>Item Code:</strong> <?=htmlspecialchars($item['item_code'])?></p>
+              <p><strong>Time:</strong> <?=htmlspecialchars($item['time'])?></p>
+              <p><strong>Date:</strong> <?=htmlspecialchars($item['date'])?></p>
+            </div>
+          </div>
+        <?php endwhile; ?>
       </div>
     </div>
   </div>
 
   <script>
+    // 搜索与分类过滤
     const searchInput = document.getElementById('searchInput');
     const categoryFilter = document.getElementById('categoryFilter');
     const cards = document.querySelectorAll('.stock-card');
@@ -230,6 +335,18 @@
 
     searchInput.addEventListener('input', filterStock);
     categoryFilter.addEventListener('change', filterStock);
+
+    // 侧边栏折叠功能
+    function toggleSidebar() {
+      const sidebar = document.getElementById('sidebar');
+      const icon = sidebar.querySelector('.sidebar-toggle i');
+      sidebar.classList.toggle('collapsed');
+      icon.setAttribute("data-lucide", sidebar.classList.contains("collapsed") ? "chevron-right" : "chevron-left");
+      lucide.createIcons();
+    }
+
+    // 初始化 lucide 图标
+    lucide.createIcons();
   </script>
 </body>
 </html>
