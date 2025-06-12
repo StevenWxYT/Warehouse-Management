@@ -7,7 +7,7 @@ if(!empty($_SESSION['username'])){
 }
 
 $db = new DBConn();
-$stock = new DBFunc($db);
+$stock = new DBFunc($db->conn);
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     

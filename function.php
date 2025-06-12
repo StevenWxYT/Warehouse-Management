@@ -28,40 +28,6 @@ class DBFunc
         }
     }
 
-    public function loginUser($username, $password)
-    {
-        $stmt = $this->conn->prepare("SELECT * FROM users WHERE username = ?");
-        $stmt->bind_param('s', $username);
-        $stmt->execute();
-        $result = $stmt->get_result();
-
-        if ($result && $result->num_rows == 1) {
-            $user = $result->fetch_assoc();
-            if (password_verify($password, $user['password'])) {
-                session_start();
-                $_SESSION['username'] = $user['username'];
-                $_SESSION['role'] = $user['role'];
-
-                if ($user['role'] === 'admin') {
-                    header('Location: dashboard.php');
-                } elseif ($user['role'] === 'sellsman') {
-                    header('Location: update.php');
-                } elseif ($user['role'] === 'buyer') {
-                    header('Location: retail.php');
-                } else {
-                    echo "Unknown role.";
-                }
-                exit();
-            } else {
-                echo "Invalid password.";
-            }
-        } else {
-            echo "User not found.";
-        }
-
-        $stmt->close();
-    }
-
     // public function loginUser($username, $password)
     // {
     //     $stmt = $this->conn->prepare("SELECT * FROM users WHERE username = ?");
@@ -76,8 +42,15 @@ class DBFunc
     //             $_SESSION['username'] = $user['username'];
     //             $_SESSION['role'] = $user['role'];
 
-    //             // All users are redirected to dashboard.php
-    //             header('Location: dashboard.php');
+    //             if ($user['role'] === 'admin') {
+    //                 header('Location: dashboard.php');
+    //             } elseif ($user['role'] === 'sellsman') {
+    //                 header('Location: update.php');
+    //             } elseif ($user['role'] === 'buyer') {
+    //                 header('Location: retail.php');
+    //             } else {
+    //                 echo "Unknown role.";
+    //             }
     //             exit();
     //         } else {
     //             echo "Invalid password.";
@@ -88,6 +61,33 @@ class DBFunc
 
     //     $stmt->close();
     // }
+
+    public function loginUser($username, $password)
+    {
+        $stmt = $this->conn->prepare("SELECT * FROM users WHERE username = ?");
+        $stmt->bind_param('s', $username);
+        $stmt->execute();
+        $result = $stmt->get_result();
+
+        if ($result && $result->num_rows == 1) {
+            $user = $result->fetch_assoc();
+            if (password_verify($password, $user['password'])) {
+                session_start();
+                $_SESSION['username'] = $user['username'];
+                $_SESSION['role'] = $user['role'];
+
+                // All users are redirected to dashboard.php
+                header('Location: dashboard.php');
+                exit();
+            } else {
+                echo "Invalid password.";
+            }
+        } else {
+            echo "User not found.";
+        }
+
+        $stmt->close();
+    }
 
     public function logoutUser()
     {
