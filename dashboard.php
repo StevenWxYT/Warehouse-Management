@@ -5,10 +5,12 @@ $db = new DBConn();
 $user = new DBFunc($db->conn);
 
 // Redirect if not logged in
-// if (empty($_SESSION['username'])) {
+// if (!empty($_SESSION['username'])) {
 //     header('Location: index.php');
 //     exit();
 // }
+
+$role = $_SESSION['role'] ?? 'guest';
 
 // Fetch dashboard data
 $topSelling = $user->getTop10BestSelling();
@@ -138,10 +140,15 @@ if (!empty($topSelling)) {
   </style>
 <body>
     <main class="dashboard">
+        <?php if (in_array($role, ['admin', 'salesman'])): ?>
         <button onclick="window.location.href='stock_quantity.php'" id="bt-1">View<br>Stock<br>Quantity</button><br>
         <button onclick="window.location.href='order_history.php'" id="bt-2">View<br>Order<br>History</button><br>
+        <?php endif; ?>
+
+        <?php if (in_array($role, ['admin'])): ?>
         <button onclick="window.location.href='stock_order.php'" id="bt-3">Order<br>Stocks</button><br>
         <button onclick="window.location.href='stock_manage.php'" id="bt-4">Manage<br>Stocks</button>
+        <?php endif; ?>
     </main>
 </body>
 </html>
