@@ -4,7 +4,7 @@ include("function.php");
 $db = new DBConn();
 $user = new DBFunc($db->conn);
 
-if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['login'])) {
     $username = $_POST['username'];
     $password = $_POST['password'];
     
@@ -14,12 +14,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login</title>
-</head>
-<style>
-    /* 🌈 背景渐变和流动效果 */
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Login</title>
+  <style>
     body {
       margin: 0;
       padding: 0;
@@ -32,15 +30,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
       align-items: center;
       justify-content: center;
     }
-
-    /* 🎞 背景渐变动画 */
     @keyframes gradientFlow {
       0% { background-position: 0% 50%; }
       50% { background-position: 100% 50%; }
       100% { background-position: 0% 50%; }
     }
-
-    /* 📦 表单容器 */
     form {
       background: rgba(255, 255, 255, 0.95);
       padding: 40px;
@@ -50,15 +44,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
       text-align: center;
       animation: floaty 6s ease-in-out infinite;
     }
-
-    /* ☁ 浮动动画效果（可选） */
     @keyframes floaty {
       0%, 100% { transform: translateY(0); }
       50% { transform: translateY(-5px); }
     }
-
-    /* ✨ 输入框样式 */
-    input {
+    input, select {
       width: 100%;
       padding: 12px;
       margin-bottom: 15px;
@@ -66,14 +56,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
       border-radius: 8px;
       transition: all 0.3s ease;
     }
-
     input:focus {
       border-color: #4CAF50;
       box-shadow: 0 0 12px rgba(76, 175, 80, 0.5);
       outline: none;
     }
-
-    /* 🔘 按钮样式 */
     button {
       width: 100%;
       padding: 12px;
@@ -85,38 +72,36 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
       cursor: pointer;
       border-radius: 8px;
       transition: all 0.3s ease;
-      box-shadow: 0 0 0 transparent;
     }
-
-    /* ✨ 按钮悬停效果 */
     button:hover {
       background: #0056b3;
       transform: scale(1.05);
       box-shadow: 0 0 15px rgba(0, 123, 255, 0.6);
     }
-
-    a {
-      display: block;
-      margin-top: 15px;
-      font-size: 14px;
+    .link-button {
+      background: transparent;
       color: #007bff;
-      text-decoration: none;
-    }
-
-    a:hover {
+      border: none;
+      padding: 0;
+      font-size: 14px;
+      cursor: pointer;
       text-decoration: underline;
     }
   </style>
+</head>
 <body>
-    <main class="form">
-        <form action="index.php" method="POST">
-            <label for="username">Username</label>
-            <input type="text" name="username"><br>
-            <label for="password">Password</label>
-            <input type="password" name="password"><br>
-            <button type="submit" window.location.href='dashboard.php'>Login</button><br>
-            <p>Don't have account?</p><button type="submit" window.location.href='register.php'>Click here</button>
-        </form>
-    </main>
+  <main class="form">
+    <form action="index.php" method="POST">
+      <label for="username">Username</label>
+      <input type="text" name="username" required><br>
+      <label for="password">Password</label>
+      <input type="password" name="password" required><br>
+      <button type="submit" name="login">Login</button><br>
+      <p>Don't have an account?</p>
+      <a href="register.php">
+        <button type="button" class="link-button">Click here</button>
+      </a>
+    </form>
+  </main>
 </body>
 </html>

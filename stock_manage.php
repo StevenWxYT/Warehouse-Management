@@ -17,19 +17,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     $sku = $_POST['sku'] ?? '';
     $rack = $_POST['rack'] ?? '';
     $zone = $_POST['zone'] ?? '';
-    $name = $_POST['name'] ?? '';
-    $dimensions = $_POST['dimensions'] ?? '';
-    $color = $_POST['colour'] ?? '';
-    $weight = isset($_POST['weight']) ? (float)$_POST['weight'] : 0.0;
     $quantity = isset($_POST['quantity']) ? (int)$_POST['quantity'] : 0;
-    $description = $_POST['description'] ?? '';
-    $price = isset($_POST['price']) ? (float)$_POST['price'] : 0.0;
 
     if ($action === 'insert') {
-        $stock->insertWarehouse($id, $image, $sku, $rack, $zone, $name, $dimensions, $color, $weight, $quantity, $description, $price);
+        $stock->insertWarehouse($id, $image, $sku, $rack, $zone, $quantity);
         echo "✅ Record inserted successfully.";
     } elseif ($action === 'update') {
-        $stock->updateWarehouse($id, $image, $sku, $rack, $zone, $name, $dimensions, $color, $weight, $quantity, $description, $price);
+        $stock->updateWarehouse($id, $image, $sku, $rack, $zone, $quantity);
         echo "✅ Record updated successfully.";
     } elseif ($action === 'delete') {
         $stock->deleteWarehouse($id);

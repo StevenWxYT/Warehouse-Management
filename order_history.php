@@ -1,7 +1,8 @@
 <?php
+session_start();
 include("function.php");
 
-if(!empty($_SESSION['username'])){
+if (!empty($_SESSION['username'])) {
     header('Location: index.php');
     exit();
 }
@@ -16,41 +17,37 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $sku = $_POST['sku'] ?? '';
     $rack = $_POST['rack'] ?? '';
     $zone = $_POST['zone'] ?? '';
-    $name = $_POST['name'] ?? '';
-    $dimensions = $_POST['dimensions'] ?? '';
-    $color = $_POST['colour'] ?? '';
-    $weight = isset($_POST['weight']) ? (float)$_POST['weight'] : 0.0;
     $quantity = isset($_POST['quantity']) ? (int)$_POST['quantity'] : 0;
-    $description = $_POST['description'] ?? '';
-    $price = isset($_POST['price']) ? (float)$_POST['price'] : 0.0;
 
-    // Showing all WMS data inputs
-    $stock = $this->conn->prepare("SELECT * FROM warehouse WHERE id = ?");
-    $stock->bind_param('i', $id);
-    $stock->execute();
+    // Showing all WMS data inputs (Fetch after insert)
+    $fetch = $db->conn->prepare("SELECT * FROM warehouse WHERE id = ?");
+    $fetch->bind_param('i', $id);
+    $fetch->execute();
+    $result = $fetch->get_result();
+    if ($result && $result->num_rows > 0) {
+        $data = $result->fetch_assoc();
+        // (Optional) display $data here
+    }
+    $fetch->close();
 
-    // Stock check-ins and viewing
-    $stockIn = $this->conn->prepare("INSERT INTO warehouse (id, sku, rack, zone, name, dimensions, colour, weight, quantity, description, price) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-    $stockIn->bind_param("issssssssisd", $id, $image, $sku, $rack, $zone, $name, $dimensions, $color, $weight, $quantity, $description, $price);
-    $stockIn->execute();
-    if ($stockIn->num_rows == 1) {
-        $stockIn = $this->conn->prepare("SELECT * FROM warehouse WHERE id = ?");
-        $stockIn->bind_param("i", $id);
+    // Stock check-ins
+    $stockIn = $db->conn->prepare("INSERT INTO warehouse (id, image, sku, rack, zone, quantity) VALUES (?, ?, ?, ?, ?, ?)");
+    if ($stockIn) {
+        $stockIn->bind_param("issssi", $id, $image, $sku, $rack, $zone, $quantity);
         $stockIn->execute();
+        $stockIn->close();
     } else {
-        echo "No stocks have been added, please input new stock summary." . $this->conn->error();
+        echo "Insert failed: " . $db->conn->error;
     }
 
-    // Stock check-outs and viewing
-    $stockOut = $this->conn->prepare("INSERT INTO warehouse (id, sku, rack, zone, name, dimensions, colour, weight, quantity, description, price) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-    $stockOut->bind_param("issssssssisd", $id, $image, $sku, $rack, $zone, $name, $dimensions, $color, $weight, $quantity, $description, $price);
-    $stockOut->execute();
-    if ($stockOut->num_rows == 1) {
-        $stockOut = $this->conn->prepare("SELECT * FROM warehouse WHERE id = ?");
-        $stockOut->bind_param("i", $id);
+    // Stock check-outs (if needed — same as check-in here)
+    $stockOut = $db->conn->prepare("INSERT INTO warehouse (id, image, sku, rack, zone, quantity) VALUES (?, ?, ?, ?, ?, ?)");
+    if ($stockOut) {
+        $stockOut->bind_param("issssi", $id, $image, $sku, $rack, $zone, $quantity);
         $stockOut->execute();
+        $stockOut->close();
     } else {
-        echo "No stocks have been added, please input new stock summary." . $this->conn->error();
+        echo "Insert failed: " . $db->conn->error;
     }
 }
 ?>

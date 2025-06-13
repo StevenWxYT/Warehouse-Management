@@ -13,20 +13,23 @@ class DBFunc
 
     // User login/registration
     public function registerUser($username, $password, $role)
-    {
-        $pwd = password_hash($password, PASSWORD_DEFAULT);
+{
+    $pwd = password_hash($password, PASSWORD_DEFAULT);
 
-        $stmt = $this->conn->prepare("INSERT INTO users (username, password, role) VALUES (?, ?, ?)");
-        if ($stmt) {
-            $stmt->bind_param('sss', $username, $pwd, $role);
-            if ($stmt->execute()) {
-                $stmt->close();
-                header("Location: login.php");
-                exit();
-            }
+    $stmt = $this->conn->prepare("INSERT INTO users (username, password, role) VALUES (?, ?, ?)");
+    if ($stmt) {
+        $stmt->bind_param('sss', $username, $pwd, $role);
+        if ($stmt->execute()) {
             $stmt->close();
+            header("Location: index.php");
+            exit();
         }
+        $stmt->close();
+    } else {
+        echo "Database error: " . $this->conn->error;
     }
+}
+    
 
     // public function loginUser($username, $password)
     // {
