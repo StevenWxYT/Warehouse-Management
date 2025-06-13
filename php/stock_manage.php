@@ -1,11 +1,14 @@
 <?php
 include_once('db.php');
+session_start(); // 开启 Session
 
 $items_sql = "SELECT * FROM `wmsitem`";
 $query = mysqli_query($conn, $items_sql);
 
 $category_sql = "SELECT * FROM `wmscategory`";
-$category_sql = mysqli_query($conn, $category_sql);
+$category_result = mysqli_query($conn, $category_sql);
+
+$isLoggedIn = isset($_SESSION['username']);
 ?>
 
 <!DOCTYPE html>
@@ -295,6 +298,15 @@ $category_sql = mysqli_query($conn, $category_sql);
       <div class="dropdown-content" id="dropdownContent">
         <button onclick="alert('Tool 1')"><i data-lucide="wrench"></i><span>Top ten best sales</span></button>
         <button onclick="alert('Tool 2')"><i data-lucide="settings"></i><span>Tool 2</span></button>
+
+        <?php if (!$isLoggedIn): ?>
+          <button onclick="window.location.href='login.php'">
+            <i data-lucide="log-in"></i><span>Login</span>
+          </button>
+          <button onclick="window.location.href='register.php'">
+            <i data-lucide="user-plus"></i><span>Register</span>
+          </button>
+        <?php endif; ?>
       </div>
     </div>
 
@@ -308,17 +320,11 @@ $category_sql = mysqli_query($conn, $category_sql);
       <i data-lucide="shopping-cart"></i><span>Order Stocks</span>
     </button>
 
-    <div class="auth-buttons">
-      <button onclick="window.location.href='login.php'">
-        <i data-lucide="log-in"></i><span>Login</span>
-      </button>
-      <button onclick="window.location.href='register.php'">
-        <i data-lucide="user-plus"></i><span>Register</span>
-      </button>
+    <?php if ($isLoggedIn): ?>
       <button onclick="window.location.href='logout.php'">
         <i data-lucide="log-out"></i><span>Logout</span>
       </button>
-    </div>
+    <?php endif; ?>
   </div>
 
   <div class="container">
@@ -328,13 +334,25 @@ $category_sql = mysqli_query($conn, $category_sql);
         <button class="add-button" onclick="location.href='stock_order.php'">Add Item</button>
         <select id="categoryFilter">
           <option value="all">All Categories</option>
-          <!-- PHP Category Loop -->
+          <?php while ($row = mysqli_fetch_assoc($category_result)): ?>
+            <option value="<?= $row['category_name'] ?>"><?= $row['category_name'] ?></option>
+          <?php endwhile; ?>
         </select>
         <input type="text" id="searchInput" placeholder="Search by name or code...">
       </div>
 
       <div class="stock-grid" id="stockGrid">
-        <!-- PHP stock items loop -->
+        <?php while ($item = mysqli_fetch_assoc($query)): ?>
+          <div class="stock-card" data-category="<?= $item['category'] ?>">
+            <img src="<?= $item['image_url'] ?>" alt="<?= $item['item_name'] ?>">
+            <div class="stock-info">
+              <h3><?= $item['item_name'] ?></h3>
+              <p>Code: <?= $item['item_code'] ?></p>
+              <p>Qty: <?= $item['quantity'] ?></p>
+              <p>Category: <?= $item['category'] ?></p>
+            </div>
+          </div>
+        <?php endwhile; ?>
       </div>
     </div>
   </div>
@@ -342,11 +360,11 @@ $category_sql = mysqli_query($conn, $category_sql);
   <script>
     const searchInput = document.getElementById('searchInput');
     const categoryFilter = document.getElementById('categoryFilter');
-    const cards = document.querySelectorAll('.stock-card');
 
     function filterStock() {
       const keyword = searchInput.value.toLowerCase();
       const category = categoryFilter.value;
+      const cards = document.querySelectorAll('.stock-card');
 
       cards.forEach(card => {
         const title = card.querySelector('h3').textContent.toLowerCase();

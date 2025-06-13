@@ -1,22 +1,45 @@
 
 <?php
-
 include_once('db.php');
 
-if ($_SERVER["REQUEST_METHOD"] === "POST"){
-    $item_name =$_POST['item_name'];
+if ($_SERVER["REQUEST_METHOD"] === "POST") {
+    $item_name = $_POST['item_name'];
     $quantity = $_POST['quantity'];
     $item_code = $_POST['item_code'];
+    $note = $_POST['note'] ?? '';
+    $date = date("Y-m-d");
+    $time = date("H:i:s");
 
-    $date = date("d - m - Y");
-    $time = date("h:i:s A");
-    
+    // 处理上传图片
+    $image_path = "";
+    if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
+        $upload_dir = 'uploads/';
+        if (!is_dir($upload_dir)) {
+            mkdir($upload_dir, 0777, true); // 自动创建 uploads 文件夹
+        }
+
+        $file_tmp = $_FILES['image']['tmp_name'];
+        $file_name = basename($_FILES['image']['name']);
+        $target_file = $upload_dir . time() . '_' . $file_name;
+
+        if (move_uploaded_file($file_tmp, $target_file)) {
+            $image_path = $target_file;
+        }
+    }
+
+    // 插入数据库
+    $stmt = $conn->prepare("INSERT INTO wmsitem (item_name, quantity, item_code, note, image_path, date, time) VALUES (?, ?, ?, ?, ?, ?, ?)");
+    $stmt->bind_param("sisssss", $item_name, $quantity, $item_code, $note, $image_path, $date, $time);
+
+    if ($stmt->execute()) {
+        echo "<script>alert('Item added successfully!');</script>";
+    } else {
+        echo "Error: " . $stmt->error;
+    }
+
+    $stmt->close();
+    $conn->close();
 }
-
-
-
-
-
 ?>
 
 <!DOCTYPE html>
