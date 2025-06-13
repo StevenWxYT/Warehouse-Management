@@ -3,8 +3,17 @@
 
 include_once('db.php');
 
-$item_name =$_POST['item_name'];
-$quantity = $_POST['quantity'];
+if ($_SERVER["REQUEST_METHOD"] === "POST"){
+    $item_name =$_POST['item_name'];
+    $quantity = $_POST['quantity'];
+    $item_code = $_POST['item_code'];
+
+    $date = date("d - m - Y");
+    $time = date("h:i:s A");
+    
+}
+
+
 
 
 
@@ -154,11 +163,12 @@ $quantity = $_POST['quantity'];
   <div class="order-container">
   <h2>Order Stock</h2>
   <form action="stock_order.php" method="POST" enctype="multipart/form-data">
-    <input type="file" name="image" id="">
     <input type="text" name="item_name" placeholder="Item Name" required>
     <input type="number" name="quantity" placeholder="Quantity" min="1" required>
+    <input type="text" name="item_code" placeholder="Item code" required>
     <textarea name="note" placeholder="Additional Notes (optional)" rows="3"></textarea>
-    <input type="file" name="item_image" accept="image/*">
+    <input type="file" name="image" accept="image/jpeg, image/png" id="imageUpload">
+   
     
     <!-- 按钮包裹容器 -->
     <div class="button-group">

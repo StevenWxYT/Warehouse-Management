@@ -1,3 +1,11 @@
+<?php
+include_once('db.php');
+
+
+
+?>
+
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -30,9 +38,9 @@
     }
 
     .container {
-      max-width: 1100px; /* 扩大宽度 */
+      max-width: 1100px;
       width: 100%;
-      min-height: 650px;  /* 增加高度 */
+      min-height: 650px;
       background-color: #ffffffcc;
       padding: 40px;
       border-radius: 16px;
@@ -51,18 +59,30 @@
       width: 100%;
       border-collapse: collapse;
       margin-bottom: 20px;
+      border-radius: 12px;
+      overflow: hidden;
     }
 
-    th, td {
+    thead {
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+    }
+
+    th {
+      background:  #d0d3d4 ;
+      color: black;
+      font-size: 16px;
+      font-weight: 600;
+      padding: 16px;
+      border-bottom: 2px solid #ccc;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    td {
       padding: 15px;
       text-align: left;
       border-bottom: 1px solid #ddd;
       vertical-align: middle;
-    }
-
-    th {
-      background-color: #f0f0f0;
-      color: #555;
     }
 
     tr:hover {
@@ -200,7 +220,6 @@
     document.addEventListener("click", function(e) {
       const target = e.target;
 
-      // Update quantity via prompt
       if (target.classList.contains("update-btn")) {
         const row = target.closest("tr");
         const qtyElement = row.querySelector(".qty");
@@ -211,7 +230,6 @@
         }
       }
 
-      // Delete row
       if (target.classList.contains("delete-btn")) {
         const row = target.closest("tr");
         const itemName = row.querySelector("td:nth-child(2)").textContent;
@@ -220,13 +238,11 @@
         }
       }
 
-      // Increase quantity
       if (target.classList.contains("plus")) {
         const qtyEl = target.parentElement.querySelector(".qty");
         qtyEl.textContent = Number(qtyEl.textContent) + 1;
       }
 
-      // Decrease quantity
       if (target.classList.contains("minus")) {
         const qtyEl = target.parentElement.querySelector(".qty");
         let value = Number(qtyEl.textContent);

@@ -8,9 +8,10 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $email = trim($_POST['email'] ?? '');
     $password = trim($_POST['password'] ?? '');
     $confirm_password = trim($_POST['confirm_password'] ?? '');
+    $role = trim($_POST['role'] ?? '');
 
     // 检查是否为空
-    if (empty($username) || empty($email) || empty($password) || empty($confirm_password)) {
+    if (empty($username) || empty($email) || empty($password) || empty($confirm_password) || empty($role)) {
         $message = "❌ Please fill in all fields.";
     }
     // 检查 email 格式
@@ -38,9 +39,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
 
                 // 插入新用户
-                $insertStmt = $conn->prepare("INSERT INTO wmsregister (username, email, password) VALUES (?, ?, ?)");
+                $insertStmt = $conn->prepare("INSERT INTO wmsregister (username, email, password, role) VALUES (?, ?, ?, ?)");
                 if ($insertStmt) {
-                    $insertStmt->bind_param("sss", $username, $email, $hashedPassword);
+                    $insertStmt->bind_param("ssss", $username, $email, $hashedPassword, $role);
 
                     if ($insertStmt->execute()) {
                         header("Refresh: 2; URL=dashboard.php");
@@ -154,6 +155,21 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
       background-color: #d4edda;
       border-left-color: #28a745;
     }
+
+    .role-selection {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      margin: 10px 0;
+    }
+
+    .role-selection label {
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      margin: 5px 0;
+      gap: 8px;
+    }
   </style>
 </head>
 <body>
@@ -172,6 +188,12 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
       <input type="email" name="email" placeholder="Email" required>
       <input type="password" name="password" placeholder="Password" required>
       <input type="password" name="confirm_password" placeholder="Confirm Password" required>
+
+      <div class="role-selection">
+        <label><input type="radio" name="role" value="Admin" required> Admin</label>
+        <label><input type="radio" name="role" value="Salesman" required> Salesman</label>
+      </div>
+
       <button type="submit">Register</button>
     </form>
   </div>

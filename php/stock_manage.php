@@ -72,7 +72,7 @@ $category_sql = mysqli_query($conn, $category_sql);
     }
 
     .sidebar button:hover {
-      background-color: #e4e4ff;
+      background-color: #ecf0f1;
       transform: translateX(4px);
     }
 
@@ -245,9 +245,41 @@ $category_sql = mysqli_query($conn, $category_sql);
       display: none !important;
     }
 
-    .sidebar i {
-      width: 20px;
-      height: 20px;
+    /* ▼ Dropdown Section ▼ */
+    .dropdown-section {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .dropdown-toggle {
+      font-size: 22px;
+      padding: 8px;
+      background: #f8f8f8;
+      border: none;
+      border-radius: 8px;
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+    }
+
+    .dropdown-content {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      overflow: hidden;
+      max-height: 0;
+      opacity: 0;
+      transition: all 0.3s ease;
+    }
+
+    .dropdown-content.show {
+      max-height: 200px;
+      opacity: 1;
     }
   </style>
 </head>
@@ -256,6 +288,16 @@ $category_sql = mysqli_query($conn, $category_sql);
     <button class="sidebar-toggle" onclick="toggleSidebar()">
       <i data-lucide="chevron-left"></i>
     </button>
+
+    <!-- ☰ Dropdown Menu -->
+    <div class="dropdown-section">
+      <button class="dropdown-toggle" onclick="toggleDropdown()" title="Tools">☰</button>
+      <div class="dropdown-content" id="dropdownContent">
+        <button onclick="alert('Tool 1')"><i data-lucide="wrench"></i><span>Top ten best sales</span></button>
+        <button onclick="alert('Tool 2')"><i data-lucide="settings"></i><span>Tool 2</span></button>
+      </div>
+    </div>
+
     <button onclick="window.location.href='stock_quantity.php'">
       <i data-lucide="package"></i><span>View Stock Quantity</span>
     </button>
@@ -266,7 +308,6 @@ $category_sql = mysqli_query($conn, $category_sql);
       <i data-lucide="shopping-cart"></i><span>Order Stocks</span>
     </button>
 
-    <!-- 认证按钮 -->
     <div class="auth-buttons">
       <button onclick="window.location.href='login.php'">
         <i data-lucide="log-in"></i><span>Login</span>
@@ -287,32 +328,18 @@ $category_sql = mysqli_query($conn, $category_sql);
         <button class="add-button" onclick="location.href='stock_order.php'">Add Item</button>
         <select id="categoryFilter">
           <option value="all">All Categories</option>
-          <?php while($row = mysqli_fetch_assoc($category_sql)): ?>
-            <option value="<?=htmlspecialchars($row['category'])?>"><?=htmlspecialchars($row['category'])?></option>
-          <?php endwhile; ?>
+          <!-- PHP Category Loop -->
         </select>
         <input type="text" id="searchInput" placeholder="Search by name or code...">
       </div>
 
       <div class="stock-grid" id="stockGrid">
-        <?php while ($item = mysqli_fetch_assoc($query)): ?>
-          <div class="stock-card" data-category="<?=htmlspecialchars($item['category'])?>">
-            <img src="<?=htmlspecialchars($item['category'])?>" alt="<?=htmlspecialchars($item['item_name'])?>">
-            <div class="stock-info">
-              <h3><?=htmlspecialchars($item['item_name'])?></h3>
-              <p><strong>Quantity:</strong> <?=htmlspecialchars($item['quantity'])?></p>
-              <p><strong>Item Code:</strong> <?=htmlspecialchars($item['item_code'])?></p>
-              <p><strong>Time:</strong> <?=htmlspecialchars($item['time'])?></p>
-              <p><strong>Date:</strong> <?=htmlspecialchars($item['date'])?></p>
-            </div>
-          </div>
-        <?php endwhile; ?>
+        <!-- PHP stock items loop -->
       </div>
     </div>
   </div>
 
   <script>
-    // 搜索与分类过滤
     const searchInput = document.getElementById('searchInput');
     const categoryFilter = document.getElementById('categoryFilter');
     const cards = document.querySelectorAll('.stock-card');
@@ -336,7 +363,6 @@ $category_sql = mysqli_query($conn, $category_sql);
     searchInput.addEventListener('input', filterStock);
     categoryFilter.addEventListener('change', filterStock);
 
-    // 侧边栏折叠功能
     function toggleSidebar() {
       const sidebar = document.getElementById('sidebar');
       const icon = sidebar.querySelector('.sidebar-toggle i');
@@ -345,8 +371,13 @@ $category_sql = mysqli_query($conn, $category_sql);
       lucide.createIcons();
     }
 
-    // 初始化 lucide 图标
+    function toggleDropdown() {
+      const dropdown = document.getElementById('dropdownContent');
+      dropdown.classList.toggle('show');
+    }
+
     lucide.createIcons();
   </script>
 </body>
 </html>
+

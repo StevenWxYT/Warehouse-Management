@@ -1,37 +1,39 @@
 <?php
 include 'db.php';
+session_start();
 
-$message = ''; // 存储提示信息
+$message = ''; // 提示信息
 
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $username = trim($_POST['username'] ?? '');
+    $email = trim($_POST['email'] ?? '');
     $password = trim($_POST['password'] ?? '');
 
-    if (empty($username) || empty($password)) {
-        $message = "❌ 请输入用户名和密码";
+    if (empty($username) || empty($email) || empty($password)) {
+        $message = "❌ 请输入用户名、邮箱和密码";
     } else {
-        $stmt = $conn->prepare("SELECT password FROM `wmsregister` WHERE username = ?");
+        $stmt = $conn->prepare("SELECT password, role, email FROM `wmsregister` WHERE username = ? AND email = ?");
         if ($stmt) {
-            $stmt->bind_param('s', $username);
+            $stmt->bind_param('ss', $username, $email);
             $stmt->execute();
             $stmt->store_result();
 
             if ($stmt->num_rows === 1) {
-                $stmt->bind_result($hashedPassword);
+                $stmt->bind_result($hashedPassword, $role, $fetchedEmail);
                 $stmt->fetch();
 
                 if (password_verify($password, $hashedPassword)) {
-                    session_start();
                     $_SESSION['username'] = $username;
+                    $_SESSION['role'] = $role;
+                    $_SESSION['email'] = $fetchedEmail;
 
-                    // 登录成功，显示成功消息并跳转
                     header("Refresh: 2; URL=stock_manage.php");
                     $message = "✅ 登录成功！正在跳转中...";
                 } else {
                     $message = "❌ 密码错误";
                 }
             } else {
-                $message = "❌ 用户不存在";
+                $message = "❌ 用户名或邮箱错误";
             }
 
             $stmt->close();
@@ -135,6 +137,15 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
       background-color: #d4edda;
       border-left-color: #28a745;
     }
+
+    .role-info {
+      margin-top: 20px;
+      font-size: 14px;
+      color: #333;
+      background: #f0f0f0;
+      padding: 10px;
+      border-radius: 6px;
+    }
   </style>
 </head>
 <body>
@@ -150,9 +161,22 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
     <form method="POST" action="login.php">
       <input type="text" name="username" placeholder="Username" required>
+      <input type="email" name="email" placeholder="Email" required>
       <input type="password" name="password" placeholder="Password" required>
       <button type="submit">Login</button>
     </form>
+
+    <?php if (isset($_SESSION['role'])) : ?>
+      <div class="role-info">
+        当前身份是：<strong><?= htmlspecialchars($_SESSION['role']) ?></strong>
+      </div>
+    <?php endif; ?>
+
+    <?php if (isset($_SESSION['email'])) : ?>
+      <div class="role-info">
+        登录邮箱：<strong><?= htmlspecialchars($_SESSION['email']) ?></strong>
+      </div>
+    <?php endif; ?>
   </div>
 
 </body>
