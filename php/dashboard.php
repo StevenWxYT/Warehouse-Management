@@ -1,6 +1,3 @@
-
-
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -78,6 +75,22 @@
         grid-template-columns: 1fr;
       }
     }
+
+    /* Toast 样式 */
+    #toast {
+      position: fixed;
+      bottom: 30px;
+      right: 30px;
+      background-color: #4CAF50;
+      color: white;
+      padding: 16px 24px;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      opacity: 0;
+      transition: opacity 0.5s ease, transform 0.5s ease;
+      transform: translateY(20px);
+      z-index: 1000;
+    }
   </style>
 </head>
 <body>
@@ -87,5 +100,35 @@
     <button onclick="window.location.href='stock_order.php'">🛒 Order Stocks</button>
     <button onclick="window.location.href='stock_manage.php'">🛠️ Manage Stocks</button>
   </main>
+
+  <!-- toast 提示 -->
+  <div id="toast"></div>
+
+  <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const logoutSuccess = urlParams.get('logout');
+    const loginSuccess = urlParams.get('login');
+    const registerSuccess = urlParams.get('register');
+    const toast = document.getElementById('toast');
+
+    // 设置 toast 内容
+    if (logoutSuccess === 'success') {
+      toast.textContent = 'You have been logged out successfully.';
+    } else if (loginSuccess === 'success') {
+      toast.textContent = 'Welcome back user!';
+    } else if (registerSuccess === 'success') {
+      toast.textContent = 'Welcome new user!';
+    }
+
+    // 如果有任何内容，则显示 toast
+    if (toast.textContent !== '') {
+      toast.style.opacity = '1';
+      toast.style.transform = 'translateY(0)';
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(20px)';
+      }, 3000);
+    }
+  </script>
 </body>
 </html>

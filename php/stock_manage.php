@@ -50,13 +50,6 @@ $isLoggedIn = isset($_SESSION['username']);
       flex-direction: column;
       gap: 20px;
       border-right: 1px solid #ddd;
-      transition: all 0.3s ease;
-      position: relative;
-    }
-
-    .sidebar.collapsed {
-      width: 60px;
-      padding: 20px 10px;
     }
 
     .sidebar button {
@@ -77,28 +70,6 @@ $isLoggedIn = isset($_SESSION['username']);
     .sidebar button:hover {
       background-color: #ecf0f1;
       transform: translateX(4px);
-    }
-
-    .sidebar.collapsed button span {
-      display: none;
-    }
-
-    .sidebar-toggle {
-      position: absolute;
-      top: 10px;
-      right: -16px;
-      background-color: #6c63ff;
-      border: none;
-      color: white;
-      border-radius: 50%;
-      width: 32px;
-      height: 32px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: 0 0 8px rgba(0,0,0,0.1);
-      z-index: 10;
     }
 
     .auth-buttons {
@@ -130,14 +101,6 @@ $isLoggedIn = isset($_SESSION['username']);
     .auth-buttons button:hover {
       background: linear-gradient(135deg, #8e7be5, #f4aee3);
       transform: translateY(-2px);
-    }
-
-    .sidebar.collapsed .auth-buttons span {
-      display: none;
-    }
-
-    .sidebar.collapsed .auth-buttons button {
-      justify-content: center;
     }
 
     .container {
@@ -244,11 +207,6 @@ $isLoggedIn = isset($_SESSION['username']);
       color: #555;
     }
 
-    .hidden {
-      display: none !important;
-    }
-
-    /* ▼ Dropdown Section ▼ */
     .dropdown-section {
       display: flex;
       flex-direction: column;
@@ -284,29 +242,47 @@ $isLoggedIn = isset($_SESSION['username']);
       max-height: 200px;
       opacity: 1;
     }
+
+    /* ✅ Toast 样式 */
+    .toast-container {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .toast {
+      background-color: #ff4d4f;
+      color: white;
+      padding: 14px 20px;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      font-size: 14px;
+      animation: fadeInOut 5s forwards;
+      max-width: 320px;
+      line-height: 1.4;
+    }
+
+    @keyframes fadeInOut {
+      0% { opacity: 0; transform: translateY(-10px); }
+      10%, 90% { opacity: 1; transform: translateY(0); }
+      100% { opacity: 0; transform: translateY(-10px); }
+    }
   </style>
 </head>
 <body>
-  <div class="sidebar" id="sidebar">
-    <button class="sidebar-toggle" onclick="toggleSidebar()">
-      <i data-lucide="chevron-left"></i>
-    </button>
+  <!-- ✅ Toast容器 -->
+  <div class="toast-container" id="toastContainer"></div>
 
-    <!-- ☰ Dropdown Menu -->
+  <div class="sidebar" id="sidebar">
     <div class="dropdown-section">
       <button class="dropdown-toggle" onclick="toggleDropdown()" title="Tools">☰</button>
       <div class="dropdown-content" id="dropdownContent">
-        <button onclick="alert('Tool 1')"><i data-lucide="wrench"></i><span>Top ten best sales</span></button>
-        <button onclick="alert('Tool 2')"><i data-lucide="settings"></i><span>Tool 2</span></button>
-
-        <?php if (!$isLoggedIn): ?>
-          <button onclick="window.location.href='login.php'">
-            <i data-lucide="log-in"></i><span>Login</span>
-          </button>
-          <button onclick="window.location.href='register.php'">
-            <i data-lucide="user-plus"></i><span>Register</span>
-          </button>
-        <?php endif; ?>
+        <button onclick="window.location.href='sales_report.php'"><i data-lucide="wrench"></i><span>Top ten best sales</span></button>
+        <button onclick="window.location.href='sales_report.php'"><i data-lucide="settings"></i><span>Tool 2</span></button>
       </div>
     </div>
 
@@ -321,9 +297,20 @@ $isLoggedIn = isset($_SESSION['username']);
     </button>
 
     <?php if ($isLoggedIn): ?>
-      <button onclick="window.location.href='logout.php'">
-        <i data-lucide="log-out"></i><span>Logout</span>
-      </button>
+      <div class="auth-buttons">
+        <button onclick="window.location.href='logout.php'">
+          <i data-lucide="log-out"></i><span>Logout</span>
+        </button>
+      </div>
+    <?php else: ?>
+      <div class="auth-buttons">
+        <button onclick="window.location.href='login.php'">
+          <i data-lucide="log-in"></i><span>Login</span>
+        </button>
+        <button onclick="window.location.href='register.php'">
+          <i data-lucide="user-plus"></i><span>Register</span>
+        </button>
+      </div>
     <?php endif; ?>
   </div>
 
@@ -331,7 +318,7 @@ $isLoggedIn = isset($_SESSION['username']);
     <div class="stock-container">
       <h2>Manage Stock</h2>
       <div class="controls">
-        <button class="add-button" onclick="location.href='stock_order.php'">Add Item</button>
+        <button class="add-button" onclick="location.href='stock_order.php'">Order</button>
         <select id="categoryFilter">
           <option value="all">All Categories</option>
           <?php while ($row = mysqli_fetch_assoc($category_result)): ?>
@@ -381,21 +368,49 @@ $isLoggedIn = isset($_SESSION['username']);
     searchInput.addEventListener('input', filterStock);
     categoryFilter.addEventListener('change', filterStock);
 
-    function toggleSidebar() {
-      const sidebar = document.getElementById('sidebar');
-      const icon = sidebar.querySelector('.sidebar-toggle i');
-      sidebar.classList.toggle('collapsed');
-      icon.setAttribute("data-lucide", sidebar.classList.contains("collapsed") ? "chevron-right" : "chevron-left");
-      lucide.createIcons();
-    }
-
     function toggleDropdown() {
       const dropdown = document.getElementById('dropdownContent');
       dropdown.classList.toggle('show');
     }
 
+    // ✅ Toast 弹窗显示函数
+    function showToast(message) {
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+      toast.className = 'toast';
+      toast.innerText = message;
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.remove();
+      }, 5000);
+    }
+
+    // ✅ 自动检查库存函数
+    function checkLowStock(threshold = 10) {
+      const cards = document.querySelectorAll('.stock-card');
+      let lowStockItems = [];
+
+      cards.forEach(card => {
+        const name = card.querySelector('h3').textContent;
+        const qtyText = Array.from(card.querySelectorAll('p')).find(p => p.textContent.includes('Qty'));
+        const qty = parseInt(qtyText.textContent.replace(/[^0-9]/g, ''));
+
+        if (qty < threshold) {
+          lowStockItems.push(`${name}（剩余 ${qty}）`);
+        }
+      });
+
+      if (lowStockItems.length > 0) {
+        showToast("⚠️ 以下库存不足：\n" + lowStockItems.join('\n'));
+      }
+    }
+
+    // 页面载入后自动检查库存
+    window.addEventListener('DOMContentLoaded', () => {
+      checkLowStock(10); // 可自定义最低库存数
+    });
+
     lucide.createIcons();
   </script>
 </body>
 </html>
-
