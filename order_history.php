@@ -1,53 +1,53 @@
 <?php
-session_start();
-include("function.php");
-
-if (!empty($_SESSION['username'])) {
-    header('Location: index.php');
-    exit();
-}
+require_once 'db.php';       // DBConn
+require_once 'function.php'; // DBFunc
 
 $db = new DBConn();
 $stock = new DBFunc($db->conn);
 
-if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    
-    $id = isset($_POST['id']) ? (int)$_POST['id'] : 0;
-    $image = $_POST['image'] ?? '';
-    $sku = $_POST['sku'] ?? '';
-    $rack = $_POST['rack'] ?? '';
-    $zone = $_POST['zone'] ?? '';
-    $quantity = isset($_POST['quantity']) ? (int)$_POST['quantity'] : 0;
-
-    // Showing all WMS data inputs (Fetch after insert)
-    $fetch = $db->conn->prepare("SELECT * FROM warehouse WHERE id = ?");
-    $fetch->bind_param('i', $id);
-    $fetch->execute();
-    $result = $fetch->get_result();
-    if ($result && $result->num_rows > 0) {
-        $data = $result->fetch_assoc();
-        // (Optional) display $data here
-    }
-    $fetch->close();
-
-    // Stock check-ins
-    $stockIn = $db->conn->prepare("INSERT INTO warehouse (id, image, sku, rack, zone, quantity) VALUES (?, ?, ?, ?, ?, ?)");
-    if ($stockIn) {
-        $stockIn->bind_param("issssi", $id, $image, $sku, $rack, $zone, $quantity);
-        $stockIn->execute();
-        $stockIn->close();
-    } else {
-        echo "Insert failed: " . $db->conn->error;
-    }
-
-    // Stock check-outs (if needed — same as check-in here)
-    $stockOut = $db->conn->prepare("INSERT INTO warehouse (id, image, sku, rack, zone, quantity) VALUES (?, ?, ?, ?, ?, ?)");
-    if ($stockOut) {
-        $stockOut->bind_param("issssi", $id, $image, $sku, $rack, $zone, $quantity);
-        $stockOut->execute();
-        $stockOut->close();
-    } else {
-        echo "Insert failed: " . $db->conn->error;
-    }
+// Role-based access check
+if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+    echo "Access denied. Admins only.";
+    exit;
 }
+
+// Fetch activity logs
+$logs = $stock->getOrderHistory();
 ?>
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Order History (Admin)</title>
+    <link rel="stylesheet" href="master.css">
+</head>
+<body>
+<div class="container">
+    <h2>Stock Activity Log</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Timestamp</th>
+                <th>User</th>
+                <th>Action</th>
+                <th>Item SKU</th>
+            </tr>
+        </thead>
+        <tbody>
+        <?php if ($logs && count($logs)): ?>
+            <?php foreach ($logs as $log): ?>
+                <tr>
+                    <td><?= htmlspecialchars($log['timestamp']) ?></td>
+                    <td><?= htmlspecialchars($log['user']) ?></td>
+                    <td><?= htmlspecialchars($log['action']) ?></td>
+                    <td><?= htmlspecialchars($log['sku']) ?></td>
+                </tr>
+            <?php endforeach; ?>
+        <?php else: ?>
+            <tr><td colspan="4">No log data available.</td></tr>
+        <?php endif; ?>
+        </tbody>
+    </table>
+    <p><a href="stock_manage.php">&larr; Back to Stock Management</a></p>
+</div>
+</body>
+</html>

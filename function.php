@@ -10,60 +10,23 @@ class DBFunc
         $this->conn = $db;
     }
 
-
-    // User login/registration
+    // ===== User Auth =====
     public function registerUser($username, $password, $role)
-{
-    $pwd = password_hash($password, PASSWORD_DEFAULT);
-
-    $stmt = $this->conn->prepare("INSERT INTO users (username, password, role) VALUES (?, ?, ?)");
-    if ($stmt) {
-        $stmt->bind_param('sss', $username, $pwd, $role);
-        if ($stmt->execute()) {
+    {
+        $pwd = password_hash($password, PASSWORD_DEFAULT);
+        $stmt = $this->conn->prepare("INSERT INTO users (username, password, role) VALUES (?, ?, ?)");
+        if ($stmt) {
+            $stmt->bind_param('sss', $username, $pwd, $role);
+            if ($stmt->execute()) {
+                $stmt->close();
+                header("Location: index.php");
+                exit();
+            }
             $stmt->close();
-            header("Location: index.php");
-            exit();
+        } else {
+            echo "Database error: " . $this->conn->error;
         }
-        $stmt->close();
-    } else {
-        echo "Database error: " . $this->conn->error;
     }
-}
-    
-
-    // public function loginUser($username, $password)
-    // {
-    //     $stmt = $this->conn->prepare("SELECT * FROM users WHERE username = ?");
-    //     $stmt->bind_param('s', $username);
-    //     $stmt->execute();
-    //     $result = $stmt->get_result();
-
-    //     if ($result && $result->num_rows == 1) {
-    //         $user = $result->fetch_assoc();
-    //         if (password_verify($password, $user['password'])) {
-    //             session_start();
-    //             $_SESSION['username'] = $user['username'];
-    //             $_SESSION['role'] = $user['role'];
-
-    //             if ($user['role'] === 'admin') {
-    //                 header('Location: dashboard.php');
-    //             } elseif ($user['role'] === 'sellsman') {
-    //                 header('Location: update.php');
-    //             } elseif ($user['role'] === 'buyer') {
-    //                 header('Location: retail.php');
-    //             } else {
-    //                 echo "Unknown role.";
-    //             }
-    //             exit();
-    //         } else {
-    //             echo "Invalid password.";
-    //         }
-    //     } else {
-    //         echo "User not found.";
-    //     }
-
-    //     $stmt->close();
-    // }
 
     public function loginUser($username, $password)
     {
@@ -78,8 +41,6 @@ class DBFunc
                 session_start();
                 $_SESSION['username'] = $user['username'];
                 $_SESSION['role'] = $user['role'];
-
-                // All users are redirected to dashboard.php
                 header('Location: dashboard.php');
                 exit();
             } else {
@@ -101,13 +62,10 @@ class DBFunc
         exit();
     }
 
-
-    // Warehouse function
-
+    // ===== Warehouse Functions =====
     public function insertWarehouse($id, $sku, $rack, $zone, $quantity)
     {
         $imagePath = $this->handleImageUpload();
-
         if ($imagePath) {
             $stmt = $this->conn->prepare("INSERT INTO warehouse (id, image, sku, rack, zone, quantity) VALUES (?, ?, ?, ?, ?, ?)");
             $stmt->bind_param("issssi", $id, $imagePath, $sku, $rack, $zone, $quantity);
@@ -125,7 +83,6 @@ class DBFunc
     public function updateWarehouse($id, $sku, $rack, $zone, $quantity)
     {
         $imagePath = $this->handleImageUpload();
-
         if ($imagePath) {
             $stmt = $this->conn->prepare("UPDATE warehouse SET image = ?, sku = ?, rack = ?, zone = ?, quantity = ? WHERE id = ?");
             $stmt->bind_param("sssssi", $imagePath, $sku, $rack, $zone, $quantity, $id);
@@ -161,33 +118,16 @@ class DBFunc
         }
     }
 
-
-    // public function insertWarehouse($id, $image, $sku, $rack, $zone, $name, $dimensions, $color, $weight, $quantity, $description, $price)
-    // {
-    //     $stmt = $this->conn->prepare("INSERT INTO warehouse (id, image, sku, rack, zone, name, dimensions, colour, weight, quantity, description, price) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-    //     $stmt->bind_param("issssssssisd", $id, $image, $sku, $rack, $zone, $name, $dimensions, $color, $weight, $quantity, $description, $price);
-    //     $stmt->execute();
-    //     $stmt->close();
-    // }
-
     public function viewWarehouse($id)
     {
         $stmt = $this->conn->prepare("SELECT * FROM warehouse WHERE id = ?");
         $stmt->bind_param("i", $id);
         $stmt->execute();
         $result = $stmt->get_result();
-        $data = $result->fetch_assoc(); // or fetch_all(MYSQLI_ASSOC) for multiple
+        $data = $result->fetch_assoc();
         $stmt->close();
         return $data;
     }
-
-    // public function updateWarehouse($id, $image, $sku, $rack, $zone, $name, $dimensions, $color, $weight, $quantity, $description, $price)
-    // {
-    //     $stmt = $this->conn->prepare("UPDATE warehouse SET image = ?, sku = ?, rack = ?, zone = ?, name = ?, dimensions = ?, colour = ?, weight = ?, quantity = ?, description = ?, price = ? WHERE id = ?");
-    //     $stmt->bind_param("sssssssdisdi", $image, $sku, $rack, $zone, $name, $dimensions, $color, $weight, $quantity, $description, $price, $id);
-    //     $stmt->execute();
-    //     $stmt->close();
-    // }
 
     public function deleteWarehouse($id)
     {
@@ -197,16 +137,55 @@ class DBFunc
         $stmt->close();
     }
 
+    // ===== STOCK MANAGEMENT (for stock_manage.php) =====
+
+    public function getAllStock()
+    {
+        $sql = "SELECT id, sku, category, zone, rack, quantity FROM warehouse";
+        $result = $this->conn->query($sql);
+        $stocks = [];
+
+        if ($result && $result->num_rows > 0) {
+            while ($row = $result->fetch_assoc()) {
+                $stocks[] = $row;
+            }
+        }
+
+        return $stocks;
+    }
+
+    public function updateStock($id, $sku, $category, $zone, $rack, $quantity)
+    {
+        $stmt = $this->conn->prepare("UPDATE warehouse SET sku=?, category=?, zone=?, rack=?, quantity=? WHERE id=?");
+        if ($stmt) {
+            $stmt->bind_param("ssssii", $sku, $category, $zone, $rack, $quantity, $id);
+            $stmt->execute();
+            $stmt->close();
+        }
+    }
+
+    public function deleteStock($id)
+    {
+        $stmt = $this->conn->prepare("DELETE FROM warehouse WHERE id = ?");
+        if ($stmt) {
+            $stmt->bind_param("i", $id);
+            $stmt->execute();
+            $stmt->close();
+        }
+    }
+
+    // ===== Dashboard Features =====
+
     public function getTop10BestSelling()
     {
         $stmt = $this->conn->prepare("
-        SELECT w.id, w.name, w.sku, w.image, SUM(s.quantity_sold) AS total_sold
-        FROM warehouse w
-        JOIN sales s ON w.id = s.warehouse_id
-        GROUP BY w.id
-        ORDER BY total_sold DESC
-        LIMIT 10
-    ");
+            SELECT w.id, w.name, w.sku, w.image, SUM(s.quantity_sold) AS total_sold
+            FROM warehouse w
+            JOIN sales s ON w.id = s.warehouse_id
+            GROUP BY w.id
+            ORDER BY total_sold DESC
+            LIMIT 10
+        ");
         $stmt->execute();
         $result = $stmt->get_result();
         $top10 = $result->fetch_all(MYSQLI_ASSOC);
@@ -214,42 +193,139 @@ class DBFunc
         return $top10;
     }
 
-    // public function getLowStockItems($threshold = 10)
-    // {
-    //     $stmt = $this->conn->prepare("SELECT * FROM warehouse WHERE quantity <= ?");
-    //     $stmt->bind_param("i", $threshold);
-    //     $stmt->execute();
-    //     $result = $stmt->get_result();
-    //     $items = $result->fetch_all(MYSQLI_ASSOC);
-    //     $stmt->close();
-    //     return $items;
-    // }
+    // ===== Category CRUD (Optional future features) =====
 
-    // public function getItemsByZone($zone)
-    // {
-    //     $stmt = $this->conn->prepare("SELECT * FROM warehouse WHERE zone = ?");
-    //     $stmt->bind_param("s", $zone);
-    //     $stmt->execute();
-    //     $result = $stmt->get_result();
-    //     $items = $result->fetch_all(MYSQLI_ASSOC);
-    //     $stmt->close();
-    //     return $items;
-    // }
+    public function getAllCategories()
+    {
+        $sql = "SELECT * FROM categories";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->execute();
+        return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    }
 
-    // public function getRecentSales($limit = 10)
-    // {
-    //     $stmt = $this->conn->prepare("
-    //     SELECT w.id, w.name, s.sale_date, s.quantity_sold
-    //     FROM sales s
-    //     JOIN warehouse w ON s.warehouse_id = w.id
-    //     ORDER BY s.sale_date DESC
-    //     LIMIT ?
-    // ");
-    //     $stmt->bind_param("i", $limit);
-    //     $stmt->execute();
-    //     $result = $stmt->get_result();
-    //     $recent = $result->fetch_all(MYSQLI_ASSOC);
-    //     $stmt->close();
-    //     return $recent;
-    // }
+    public function insertCategory($name, $description)
+    {
+        $sql = "INSERT INTO categories (name, description) VALUES (?, ?)";
+        $stmt = $this->conn->prepare($sql);
+        return $stmt->execute([$name, $description]);
+    }
+
+    public function updateCategory($id, $name, $description)
+    {
+        $sql = "UPDATE categories SET name=?, description=? WHERE id=?";
+        $stmt = $this->conn->prepare($sql);
+        return $stmt->execute([$name, $description, $id]);
+    }
+
+    public function deleteCategory($id)
+    {
+        $sql = "DELETE FROM categories WHERE id=?";
+        $stmt = $this->conn->prepare($sql);
+        return $stmt->execute([$id]);
+    }
+
+    public function getOrderHistory()
+    {
+        $logs = [];
+        $sql = "SELECT timestamp, user, action, sku FROM activity_logs ORDER BY timestamp DESC";
+        $result = $this->conn->query($sql);
+
+        if ($result && $result->num_rows > 0) {
+            while ($row = $result->fetch_assoc()) {
+                $logs[] = $row;
+            }
+        }
+
+        return $logs;
+    }
+
+    public function logActivity($user, $action, $sku)
+    {
+        $stmt = $this->conn->prepare("INSERT INTO activity_logs (user, action, sku) VALUES (?, ?, ?)");
+        $stmt->bind_param("sss", $user, $action, $sku);
+        $stmt->execute();
+        $stmt->close();
+    }
+
+    public function filterStock($category, $zone)
+    {
+        $query = "SELECT * FROM warehouse WHERE 1=1";
+        $types = "";
+        $params = [];
+
+        if (!empty($category)) {
+            $query .= " AND category = ?";
+            $types .= "s";
+            $params[] = $category;
+        }
+
+        if (!empty($zone)) {
+            $query .= " AND zone = ?";
+            $types .= "s";
+            $params[] = $zone;
+        }
+
+        $stmt = $this->conn->prepare($query);
+        if (!empty($params)) {
+            $stmt->bind_param($types, ...$params);
+        }
+
+        $stmt->execute();
+        $result = $stmt->get_result();
+
+        $stocks = [];
+        while ($row = $result->fetch_assoc()) {
+            $stocks[] = $row;
+        }
+
+        return $stocks;
+    }
+
+    public function insertStock($sku, $category, $zone, $rack, $quantity, $imagePath)
+{
+    $stmt = $this->conn->prepare("INSERT INTO warehouse (sku, category, zone, rack, quantity, image) VALUES (?, ?, ?, ?, ?, ?)");
+    if (!$stmt) {
+        return false;
+    }
+
+    $stmt->bind_param("ssssis", $sku, $category, $zone, $rack, $quantity, $imagePath);
+
+    if ($stmt->execute()) {
+        $this->logActivity($_SESSION['username'] ?? 'system', 'Inserted stock', $sku);
+        return true;
+    } else {
+        return false;
+    }
+}
+
+public function searchStock($keyword, $zone)
+{
+    $query = "SELECT sku, category, zone, rack, quantity FROM warehouse WHERE 1=1";
+    $params = [];
+    $types = '';
+
+    if (!empty($keyword)) {
+        $query .= " AND (sku LIKE ? OR category LIKE ?)";
+        $kw = '%' . $keyword . '%';
+        $params[] = $kw;
+        $params[] = $kw;
+        $types .= 'ss';
+    }
+
+    if (!empty($zone)) {
+        $query .= " AND zone = ?";
+        $params[] = $zone;
+        $types .= 's';
+    }
+
+    $stmt = $this->conn->prepare($query);
+    if ($types && $stmt) {
+        $stmt->bind_param($types, ...$params);
+    }
+
+    $stmt->execute();
+    $result = $stmt->get_result();
+    return $result->fetch_all(MYSQLI_ASSOC);
+}
+
 }
