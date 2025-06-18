@@ -8,53 +8,46 @@ class DBFunc {
         $this->conn = $db;
     }
 
+    public function userExists($username) {
+        $stmt = $this->conn->prepare("SELECT id FROM users WHERE username = ?");
+        $stmt->bind_param("s", $username);
+        $stmt->execute();
+        $stmt->store_result();
+        $exists = $stmt->num_rows > 0;
+        $stmt->close();
+        return $exists;
+    }
+
     public function registerUser($username, $password, $role) {
-        $pwd = password_hash($password, PASSWORD_DEFAULT);
-        
+        $hashedPwd = password_hash($password, PASSWORD_DEFAULT);
         $stmt = $this->conn->prepare("INSERT INTO users (username, password, role) VALUES (?, ?, ?)");
-        if ($stmt) {
-            $stmt->bind_param('sss', $username, $pwd, $role);
-            if ($stmt->execute()) {
-                $stmt->close();
-                header("Location: login.php");
-                exit();
-            }
-            $stmt->close();
-        }
+        $stmt->bind_param("sss", $username, $hashedPwd, $role);
+        $success = $stmt->execute();
+        $stmt->close();
+        return $success;
     }
 
     public function loginUser($username, $password) {
         $stmt = $this->conn->prepare("SELECT * FROM users WHERE username = ?");
-        $stmt->bind_param('s', $username);
+        $stmt->bind_param("s", $username);
         $stmt->execute();
         $result = $stmt->get_result();
-
-        if ($result && $result->num_rows == 1) {
+    
+        if ($result && $result->num_rows === 1) {
             $user = $result->fetch_assoc();
+    
             if (password_verify($password, $user['password'])) {
-                session_start();
+                // session_start() 应该在调用 loginUser 之前调用，避免重复启动session
                 $_SESSION['username'] = $user['username'];
                 $_SESSION['role'] = $user['role'];
-
-                if ($user['role'] === 'admin') {
-                    header('Location: dashboard.php');
-                } elseif ($user['role'] === 'sellsman') {
-                    header('Location: update.php');
-                } elseif ($user['role'] === 'buyer') {
-                    header('Location: retail.php');
-                } else {
-                    echo "Unknown role.";
-                }
-                exit();
-            } else {
-                echo "Invalid password.";
+                $stmt->close();
+                return true;
             }
-        } else {
-            echo "User not found.";
         }
-
         $stmt->close();
+        return false;
     }
+    
 
     public function logoutUser() {
         session_start();
@@ -64,30 +57,68 @@ class DBFunc {
         exit();
     }
 
-    public function insertWarehouse($id, $image, $sku, $rack, $zone, $name, $dimensions, $color, $weight, $quantity, $description, $price) {
-        $stmt = $this->conn->prepare("INSERT INTO warehouse (id, image, sku, rack, zone, name, dimensions, color, weight, quantity, description, price) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-        $stmt->bind_param("issssssssiss", $id, $image, $sku, $rack, $zone, $name, $dimensions, $color, $weight, $quantity, $description, $price);
-        $stmt->execute();
+    public function insertWarehouse($id, $image, $sku, $rack, $zone, $quantity) {
+        $stmt = $this->conn->prepare("INSERT INTO warehouse (id, image, sku, rack, zone, quantity) VALUES (?, ?, ?, ?, ?, ?)");
+        $stmt->bind_param("issssi", $id, $image, $sku, $rack, $zone, $quantity);
+        return $stmt->execute();
     }
 
     public function viewWarehouse($id) {
         $stmt = $this->conn->prepare("SELECT * FROM warehouse WHERE id = ?");
         $stmt->bind_param("i", $id);
         $stmt->execute();
+        $result = $stmt->get_result();
+        return $result->fetch_assoc();
     }
 
-    public function updateWarehouse($id, $image, $sku, $rack, $zone, $name, $dimensions, $color, $weight, $quantity, $description, $price) {
-        $stmt = $this->conn->prepare("UPDATE warehouse SET image, sku, rack, zone, name, dimensions, color, weight, quantity, description, price WHERE id = ?");
-        $stmt->bind_param("issssssssiss", $id, $image, $sku, $rack, $zone, $name, $dimensions, $color, $weight, $quantity, $description, $price);
-        $stmt->execute();
+    public function updateWarehouse($id, $image, $sku, $rack, $zone, $quantity) {
+        $stmt = $this->conn->prepare("UPDATE warehouse SET image=?, sku=?, rack=?, zone=?, quantity=? WHERE id=?");
+        $stmt->bind_param("ssssii", $image, $sku, $rack, $zone, $quantity, $id);
+        return $stmt->execute();
     }
 
     public function deleteWarehouse($id) {
         $stmt = $this->conn->prepare("DELETE FROM warehouse WHERE id = ?");
         $stmt->bind_param("i", $id);
-        $stmt->execute();
+        return $stmt->execute();
     }
 
-    public function getWarehouse($id) {}
+    public function getAllWarehouse() {
+        $sql = "SELECT * FROM warehouse ORDER BY id DESC";
+        $result = $this->conn->query($sql);
+        if ($result) {
+            return $result->fetch_all(MYSQLI_ASSOC);
+        }
+        return [];
+    }
+
+    // ✅ 修改后的 Top10 Best Selling 产品查询（只返回现有字段）
+    public function getTop10BestSelling() {
+        $sql = "SELECT id, image, sku, rack, zone, quantity FROM warehouse ORDER BY quantity DESC LIMIT 10";
+        $result = $this->conn->query($sql);
+    
+        $topSelling = [];
+    
+        if ($result && $result->num_rows > 0) {
+            while ($row = $result->fetch_assoc()) {
+                $topSelling[] = $row;
+            }
+        }
+        return $topSelling;
+    }    
+
+    public function getOrderHistory() {
+        $sql = "SELECT * FROM order_history ORDER BY ordered_date DESC";
+        $result = $this->conn->query($sql);
+    
+        $orders = [];
+        if ($result && $result->num_rows > 0) {
+            while ($row = $result->fetch_assoc()) {
+                $orders[] = $row;
+            }
+        }
+        return $orders;
+    }
+       
 }
 ?>
