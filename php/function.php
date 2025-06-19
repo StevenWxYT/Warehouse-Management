@@ -119,6 +119,26 @@ class DBFunc {
         }
         return $orders;
     }
-       
+    public function getItemBySKU($sku) {
+        $stmt = $this->conn->prepare("SELECT * FROM stocks WHERE sku = ?");
+        $stmt->bind_param("s", $sku);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        return ($result && $result->num_rows > 0) ? $result->fetch_assoc() : null;
+    }
+    public function getAllStockItems() {
+        $sql = "SELECT * FROM stocks";
+        $result = $this->conn->query($sql);
+        $items = [];
+    
+        if ($result && $result->num_rows > 0) {
+            while ($row = $result->fetch_assoc()) {
+                $items[] = $row;
+            }
+        }
+    
+        return $items;
+    }
+    
 }
 ?>
