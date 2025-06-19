@@ -1,6 +1,7 @@
 <?php
 require_once 'db.php';       // DBConn
 require_once 'function.php'; // DBFunc
+require_once 'phpqrcode/qrlib.php'; // QR code generation library
 
 $db = new DBConn();
 $stock = new DBFunc($db->conn);
@@ -31,8 +32,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
-    $success = $stock->insertStock($sku, $category, $zone, $rack, $quantity, $imagePath);
-    $message = $success ? "Stock order placed successfully." : "Failed to place stock order.";
+    if (!empty($sku) && !empty($category) && !empty($zone) && !empty($rack) && $quantity > 0) {
+        // Check if QR code exists, otherwise generate it
+        $qrDir = 'qrcodes/';
+        if (!is_dir($qrDir)) {
+            mkdir($qrDir, 0755, true);
+        }
+        $qrPath = $qrDir . $sku . '.png';
+        if (!file_exists($qrPath)) {
+            QRcode::png($sku, $qrPath, QR_ECLEVEL_L, 4);
+        }
+
+        $success = $stock->insertStock($sku, $category, $zone, $rack, $quantity, $imagePath);
+        $message = $success ? "✅ Stock order placed successfully. QR generated." : "❌ Failed to place stock order.";
+    } else {
+        $message = "❗ Please fill out all required fields correctly.";
+    }
 }
 ?>
 <!DOCTYPE html>
@@ -80,7 +95,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <button type="submit">Place Order</button>
     </form>
 
-    <p><a href="stock_manage.php">← Back to Stock Management</a></p>
+    <p><a href="stock_manage.php">&larr; Back to Stock Management</a></p>
 </div>
 </body>
 </html>

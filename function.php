@@ -1,5 +1,6 @@
 <?php
 include "db.php";
+require_once "phpqrcode/qrlib.php"; // Ensure this path is correct
 
 class DBFunc
 {
@@ -137,8 +138,6 @@ class DBFunc
         $stmt->close();
     }
 
-    // ===== STOCK MANAGEMENT (for stock_manage.php) =====
-
     public function getAllStock()
     {
         $sql = "SELECT id, sku, category, zone, rack, quantity FROM warehouse";
@@ -174,26 +173,28 @@ class DBFunc
         }
     }
 
-    // ===== Dashboard Features =====
-
     public function getTop10BestSelling()
     {
         $stmt = $this->conn->prepare("
-            SELECT w.id, w.name, w.sku, w.image, SUM(s.quantity_sold) AS total_sold
+            SELECT w.id, w.sku, w.image, SUM(s.quantity_sold) AS total_sold
             FROM warehouse w
             JOIN sales s ON w.id = s.warehouse_id
-            GROUP BY w.id
+            GROUP BY w.id, w.sku, w.image
             ORDER BY total_sold DESC
             LIMIT 10
         ");
         $stmt->execute();
         $result = $stmt->get_result();
-        $top10 = $result->fetch_all(MYSQLI_ASSOC);
+
+        $top10 = [];
+        while ($row = $result->fetch_assoc()) {
+            $row['name'] = $row['sku']; // fallback name
+            $top10[] = $row;
+        }
+
         $stmt->close();
         return $top10;
     }
-
-    // ===== Category CRUD (Optional future features) =====
 
     public function getAllCategories()
     {
@@ -282,50 +283,90 @@ class DBFunc
     }
 
     public function insertStock($sku, $category, $zone, $rack, $quantity, $imagePath)
-{
-    $stmt = $this->conn->prepare("INSERT INTO warehouse (sku, category, zone, rack, quantity, image) VALUES (?, ?, ?, ?, ?, ?)");
-    if (!$stmt) {
+    {
+        $orderTime = date('Y-m-d H:i:s');
+        $this->generateQRForSKU($sku);
+
+        $stmt = $this->conn->prepare("INSERT INTO warehouse (sku, category, zone, rack, quantity, image, order_time) VALUES (?, ?, ?, ?, ?, ?, ?)");
+        if (!$stmt) return false;
+
+        $stmt->bind_param("ssssiss", $sku, $category, $zone, $rack, $quantity, $imagePath, $orderTime);
+
+        if ($stmt->execute()) {
+            $this->logActivity($_SESSION['username'] ?? 'system', 'Inserted stock', $sku);
+            return true;
+        }
         return false;
     }
 
-    $stmt->bind_param("ssssis", $sku, $category, $zone, $rack, $quantity, $imagePath);
+    private function generateQRForSKU($sku)
+    {
+        $qrDir = 'qrcodes/';
+        if (!is_dir($qrDir)) {
+            mkdir($qrDir, 0755, true);
+        }
 
-    if ($stmt->execute()) {
-        $this->logActivity($_SESSION['username'] ?? 'system', 'Inserted stock', $sku);
-        return true;
-    } else {
-        return false;
+        $filename = $qrDir . $sku . '.png';
+        if (!file_exists($filename)) {
+            QRcode::png($sku, $filename, QR_ECLEVEL_L, 4, 2);
+        }
+    }
+
+    public function searchStock($keyword, $zone)
+    {
+        $query = "SELECT sku, category, zone, rack, quantity FROM warehouse WHERE 1=1";
+        $params = [];
+        $types = '';
+
+        if (!empty($keyword)) {
+            $query .= " AND (sku LIKE ? OR category LIKE ?)";
+            $kw = '%' . $keyword . '%';
+            $params[] = $kw;
+            $params[] = $kw;
+            $types .= 'ss';
+        }
+
+        if (!empty($zone)) {
+            $query .= " AND zone = ?";
+            $params[] = $zone;
+            $types .= 's';
+        }
+
+        $stmt = $this->conn->prepare($query);
+        if ($types && $stmt) {
+            $stmt->bind_param($types, ...$params);
+        }
+
+        $stmt->execute();
+        $result = $stmt->get_result();
+        return $result->fetch_all(MYSQLI_ASSOC);
+    }
+
+    public function stockOut($sku, $deductQty)
+    {
+        $stmt = $this->conn->prepare("SELECT id, quantity FROM warehouse WHERE sku = ?");
+        $stmt->bind_param("s", $sku);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $item = $result->fetch_assoc();
+        $stmt->close();
+
+        if ($item && $item['quantity'] >= $deductQty) {
+            $newQty = $item['quantity'] - $deductQty;
+            $orderTime = date('Y-m-d H:i:s');
+
+            $updateStmt = $this->conn->prepare("UPDATE warehouse SET quantity = ?, order_time = ? WHERE id = ?");
+            $updateStmt->bind_param("isi", $newQty, $orderTime, $item['id']);
+            $success = $updateStmt->execute();
+            $updateStmt->close();
+
+            if ($success) {
+                $this->logActivity($_SESSION['username'] ?? 'system', "Stock Out (-$deductQty)", $sku);
+                return ["success" => true, "message" => "Successfully deducted $deductQty units from SKU: $sku."];
+            }
+            return ["success" => false, "message" => "Failed to update stock."];
+        }
+        return ["success" => false, "message" => "Not enough stock or invalid SKU."];
     }
 }
-
-public function searchStock($keyword, $zone)
-{
-    $query = "SELECT sku, category, zone, rack, quantity FROM warehouse WHERE 1=1";
-    $params = [];
-    $types = '';
-
-    if (!empty($keyword)) {
-        $query .= " AND (sku LIKE ? OR category LIKE ?)";
-        $kw = '%' . $keyword . '%';
-        $params[] = $kw;
-        $params[] = $kw;
-        $types .= 'ss';
-    }
-
-    if (!empty($zone)) {
-        $query .= " AND zone = ?";
-        $params[] = $zone;
-        $types .= 's';
-    }
-
-    $stmt = $this->conn->prepare($query);
-    if ($types && $stmt) {
-        $stmt->bind_param($types, ...$params);
-    }
-
-    $stmt->execute();
-    $result = $stmt->get_result();
-    return $result->fetch_all(MYSQLI_ASSOC);
-}
-
-}
+?>
