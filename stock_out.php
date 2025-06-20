@@ -5,13 +5,6 @@ require_once 'php/function.php';
 $db = new DBConn();
 $user = new DBFunc($db->conn);
 
-// Hardcoded item images by SKU
-$imageMap = [
-    'LP' => 'bg/lp.jpg',
-    'MIKI MOUSE' => 'bg/images (3).jpg',
-    'girl' => 'bg/download.jpg',
-];
-
 // Save scanned SKU to session
 $scannedSku = $_GET['sku'] ?? null;
 if ($scannedSku) {
@@ -40,7 +33,7 @@ foreach ($scannedSkus as $sku) {
 function generateQRCode($sku) {
     $tempDir = 'qrcodes/';
     if (!file_exists($tempDir)) mkdir($tempDir);
-    $url = 'http://' . $_SERVER['HTTP_HOST'] . '/Warehouse-Management/stock_out.php?sku=' . urlencode($sku);
+    $url = 'http://' . $_SERVER['HTTP_HOST'] . $_SERVER['PHP_SELF'] . '?sku=' . urlencode($sku);
     $filePath = $tempDir . $sku . '.png';
     if (!file_exists($filePath)) {
         require_once 'phpqrcode/qrlib.php';
@@ -158,28 +151,26 @@ function generateQRCode($sku) {
     table tr:nth-child(even) {
         background: rgba(240, 240, 240, 1);
     }
-</style>
-
-
-
+    </style>
 </head>
 <body>
 
 <h1>Stock Out Items</h1>
+
 <!-- SKU Search Form -->
 <form method="GET">
     <input type="text" name="sku" placeholder="Scan SKU" autofocus>
     <input type="submit" value="Scan">
 </form>
 
-<!-- All Scanned Item Cards -->
+<!-- Scanned Item Cards -->
 <?php foreach ($scannedItems as $item): 
     $sku = strtoupper($item['sku']);
     $quantity = $item['quantity'];
     $name = $item['item_name'] ?? 'Unknown';
     $order_time = $item['order_time'] ?? date('Y-m-d H:i:s');
     $qrPath = generateQRCode($sku);
-    $imagePath = $imageMap[$sku] ?? 'images/default.png';
+    $imagePath = $item['image_path'] ?? 'images/default.png';
 ?>
 <div class="item">
     <div class="qr">
@@ -192,7 +183,7 @@ function generateQRCode($sku) {
         <div><span class="label">Order Time:</span> <?php echo htmlspecialchars($order_time); ?></div>
     </div>
     <div class="image">
-        <img src="<?php echo $imagePath; ?>" alt="Item Image">
+        <img src="<?php echo htmlspecialchars($imagePath); ?>" alt="Item Image">
     </div>
 </div>
 <?php endforeach; ?>
@@ -200,25 +191,25 @@ function generateQRCode($sku) {
 <!-- Summary Table -->
 <table>
     <tr>
+        <th>Image</th> <!-- Add this -->
         <th>Name</th>
         <th>SKU</th>
         <th>Quantity</th>
         <th>Order Time</th>
     </tr>
     <?php foreach ($allItems as $item): 
-        $sku = $item['sku'];
-        $quantity = $item['quantity'];
-        $name = $item['item_name'] ?? 'Unknown';
-        $order_time = $item['order_time'] ?? date('Y-m-d H:i:s');
+        $imagePath = $item['image_path'] ?? 'images/default.png'; // Get image path
     ?>
     <tr>
-        <td><?php echo htmlspecialchars($name); ?></td>
-        <td><?php echo htmlspecialchars($sku); ?></td>
-        <td><?php echo htmlspecialchars($quantity); ?></td>
-        <td><?php echo htmlspecialchars($order_time); ?></td>
+        <td><img src="<?php echo htmlspecialchars($imagePath); ?>" style="max-width: 60px; border-radius: 4px;"></td> <!-- Show image -->
+        <td><?php echo htmlspecialchars($item['item_name'] ?? 'Unknown'); ?></td>
+        <td><?php echo htmlspecialchars($item['sku']); ?></td>
+        <td><?php echo htmlspecialchars($item['quantity']); ?></td>
+        <td><?php echo htmlspecialchars($item['order_time'] ?? 'N/A'); ?></td>
     </tr>
     <?php endforeach; ?>
 </table>
+
 
 </body>
 </html>

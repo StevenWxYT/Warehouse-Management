@@ -127,14 +127,12 @@ class DBFunc {
         return ($result && $result->num_rows > 0) ? $result->fetch_assoc() : null;
     }
     public function getAllStockItems() {
-        $sql = "SELECT * FROM stocks";
+        $sql = "SELECT * FROM stocks ORDER BY id DESC";
         $result = $this->conn->query($sql);
-        $items = [];
     
-        if ($result && $result->num_rows > 0) {
-            while ($row = $result->fetch_assoc()) {
-                $items[] = $row;
-            }
+        $items = [];
+        while ($row = $result->fetch_assoc()) {
+            $items[] = $row;
         }
     
         return $items;

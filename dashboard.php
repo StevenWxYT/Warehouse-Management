@@ -98,7 +98,6 @@ $topSelling = $func->getTop10BestSelling();
         </form>
         <button onclick="window.location.href='stock_quantity.php'">View Stock Quantity</button>
         <button onclick="window.location.href='stock_out.php'">Stock Out</button>
-        <button onclick="window.location.href='scan_result.php'">Scan Result</button>
         <?php if ($role === 'admin'): ?>
             <button onclick="window.location.href='stock_orders.php'">Order Stocks</button>
             <button onclick="window.location.href='stock_manage.php'">Manage Stocks</button>
