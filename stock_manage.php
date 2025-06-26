@@ -6,7 +6,6 @@ $db = new DBConn();
 $stock = new DBFunc($db->conn);
 
 // Admin session check (optional if handled globally)
-session_start();
 if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
     echo "Access denied.";
     exit;
