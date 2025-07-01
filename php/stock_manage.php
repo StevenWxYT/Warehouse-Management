@@ -10,7 +10,6 @@ $category_result = mysqli_query($conn, $category_sql);
 
 $isLoggedIn = isset($_SESSION['username']);
 ?>
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -271,6 +270,103 @@ $isLoggedIn = isset($_SESSION['username']);
       10%, 90% { opacity: 1; transform: translateY(0); }
       100% { opacity: 0; transform: translateY(-10px); }
     }
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Inter', sans-serif;
+    }
+
+    body {
+      height: 100vh;
+      display: flex;
+      background: linear-gradient(-45deg, #ff9a9e, #fad0c4, #fbc2eb, #a18cd1);
+      background-size: 400% 400%;
+      animation: gradientBG 15s ease infinite;
+    }
+
+    @keyframes gradientBG {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    .user-profile {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 1000;
+      cursor: pointer;
+    }
+
+    .avatar {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      border: 2px solid white;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+      object-fit: cover;
+    }
+
+    .user-card {
+      position: fixed;
+      top: 70px;
+      right: 20px;
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      width: 260px;
+      box-shadow: 0 6px 16px rgba(0,0,0,0.2);
+      z-index: 1000;
+      display: none;
+      animation: fadeSlideIn 0.3s ease forwards;
+    }
+
+    @keyframes fadeSlideIn {
+      from { opacity: 0; transform: translateY(-10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .user-card h4 {
+      margin: 0 0 10px;
+      font-size: 18px;
+      color: #333;
+    }
+
+    .user-card p {
+      margin: 4px 0;
+      font-size: 14px;
+      color: #666;
+    }
+
+     .toast-container {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .toast {
+      background-color: #ff4d4f;
+      color: white;
+      padding: 14px 20px;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      font-size: 14px;
+      animation: fadeInOut 5s forwards;
+      max-width: 320px;
+      line-height: 1.4;
+      white-space: pre-line;
+    }
+
+    @keyframes fadeInOut {
+      0% { opacity: 0; transform: translateY(-10px); }
+      10%, 90% { opacity: 1; transform: translateY(0); }
+      100% { opacity: 0; transform: translateY(-10px); }
+    }
   </style>
 </head>
 <body>
@@ -282,7 +378,7 @@ $isLoggedIn = isset($_SESSION['username']);
       <button class="dropdown-toggle" onclick="toggleDropdown()" title="Tools">☰</button>
       <div class="dropdown-content" id="dropdownContent">
         <button onclick="window.location.href='best_sales.php'"><i data-lucide="wrench"></i><span>Top ten best sales</span></button>
-        <button onclick="window.location.href='best_sales.php'"><i data-lucide="settings"></i><span>Tool 2</span></button>
+        <button onclick="window.location.href='Sales_report.php'"><i data-lucide="settings"></i><span>Sales report</span></button>
       </div>
     </div>
 
@@ -294,6 +390,9 @@ $isLoggedIn = isset($_SESSION['username']);
     </button>
     <button onclick="window.location.href='stock_order.php'">
       <i data-lucide="shopping-cart"></i><span>Order Stocks</span>
+    </button>
+     <button onclick="window.location.href='stock_out.php'">
+      <i data-lucide="shopping-cart"></i><span>Stock out</span>
     </button>
 
     <?php if ($isLoggedIn): ?>
@@ -313,6 +412,16 @@ $isLoggedIn = isset($_SESSION['username']);
       </div>
     <?php endif; ?>
   </div>
+
+   <?php if ($isLoggedIn): ?>
+    <div class="user-profile" onclick="toggleUserCard()">
+      <img src="https://i.imgur.com/1XU79G5.png" alt="User Avatar" class="avatar">
+    </div>
+    <div class="user-card" id="userCard">
+      <h4><?= htmlspecialchars($_SESSION['username']) ?></h4>
+      <p>Email: <?= htmlspecialchars($_SESSION['email']) ?></p>
+    </div>
+  <?php endif; ?>
 
   <div class="container">
     <div class="stock-container">
@@ -411,6 +520,11 @@ $isLoggedIn = isset($_SESSION['username']);
     });
 
     lucide.createIcons();
+
+    function toggleUserCard() {
+      const card = document.getElementById('userCard');
+      card.style.display = card.style.display === 'block' ? 'none' : 'block';
+    }
   </script>
 </body>
 </html>

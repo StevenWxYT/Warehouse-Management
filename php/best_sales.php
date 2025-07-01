@@ -1,15 +1,15 @@
 <?php
 include_once('db.php');
 
-// 获取选中的月份
+// 获取选中的月份（默认当前月）
 $selected_month = isset($_GET['month']) ? $_GET['month'] : date('Y-m');
 
-// 获取该月 top 10 销售数据
+// 查询该月 Top 10 销售数据
 $sql = "
-  SELECT item_name, SUM(quantity_sold) as total_sold
+  SELECT item_id, SUM(quantity) as total_sold
   FROM wmssales
   WHERE DATE_FORMAT(sale_date, '%Y-%m') = ?
-  GROUP BY item_name
+  GROUP BY item_id
   ORDER BY total_sold DESC
   LIMIT 10
 ";
@@ -17,14 +17,6 @@ $stmt = $conn->prepare($sql);
 $stmt->bind_param("s", $selected_month);
 $stmt->execute();
 $result = $stmt->get_result();
-
-// 获取可用月份列表（下拉选单用）
-$month_sql = "
-  SELECT DISTINCT DATE_FORMAT(sale_date, '%Y-%m') as month
-  FROM wmssales
-  ORDER BY month DESC
-";
-$months_result = $conn->query($month_sql);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -79,7 +71,7 @@ $months_result = $conn->query($month_sql);
       margin-bottom: 25px;
     }
 
-    select {
+    input[type="month"] {
       padding: 10px 16px;
       border-radius: 8px;
       font-size: 16px;
@@ -87,7 +79,7 @@ $months_result = $conn->query($month_sql);
       transition: box-shadow 0.3s ease;
     }
 
-    select:hover {
+    input[type="month"]:hover {
       box-shadow: 0 0 8px rgba(161, 140, 209, 0.5);
     }
 
@@ -174,13 +166,7 @@ $months_result = $conn->query($month_sql);
     <div class="month-select">
       <form method="GET">
         <label for="month">Choose month:</label>
-        <select name="month" id="month" onchange="this.form.submit()">
-          <?php while ($row = $months_result->fetch_assoc()): ?>
-            <option value="<?= $row['month'] ?>" <?= $selected_month == $row['month'] ? 'selected' : '' ?>>
-              <?= date('F Y', strtotime($row['month'])) ?>
-            </option>
-          <?php endwhile; ?>
-        </select>
+        <input type="month" id="month" name="month" value="<?= $selected_month ?>" onchange="this.form.submit()" />
       </form>
     </div>
 
@@ -202,7 +188,7 @@ $months_result = $conn->query($month_sql);
       <?php $rank++; endwhile; ?>
 
       <?php if ($rank === 1): ?>
-        <p>No sales found for this month.</p>
+        <p>No best sales found for this month.</p>
       <?php endif; ?>
     </div>
 
