@@ -1,6 +1,7 @@
-
 <?php
 include_once('db.php');
+
+$toastMessage = "";
 
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $item_name = $_POST['item_name'];
@@ -10,12 +11,11 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $date = date("Y-m-d");
     $time = date("H:i:s");
 
-    // 处理上传图片
     $image_path = "";
     if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
         $upload_dir = 'uploads/';
         if (!is_dir($upload_dir)) {
-            mkdir($upload_dir, 0777, true); // 自动创建 uploads 文件夹
+            mkdir($upload_dir, 0777, true);
         }
 
         $file_tmp = $_FILES['image']['tmp_name'];
@@ -27,17 +27,28 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         }
     }
 
-    // 插入数据库
-    $stmt = $conn->prepare("INSERT INTO wmsitem (item_name, quantity, item_code, note, image_path, date, time) VALUES (?, ?, ?, ?, ?, ?, ?)");
-    $stmt->bind_param("sisssss", $item_name, $quantity, $item_code, $note, $image_path, $date, $time);
+    // 检查是否已有相同 item_name 或 item_code
+    $check_stmt = $conn->prepare("SELECT id FROM wmsitem WHERE item_name = ? OR item_code = ?");
+    $check_stmt->bind_param("ss", $item_name, $item_code);
+    $check_stmt->execute();
+    $check_stmt->store_result();
 
-    if ($stmt->execute()) {
-        echo "<script>alert('Item added successfully!');</script>";
+    if ($check_stmt->num_rows > 0) {
+        $toastMessage = "item_exists";
     } else {
-        echo "Error: " . $stmt->error;
+        $stmt = $conn->prepare("INSERT INTO wmsitem (item_name, quantity, item_code, note, image_path, date, time) VALUES (?, ?, ?, ?, ?, ?, ?)");
+        $stmt->bind_param("sisssss", $item_name, $quantity, $item_code, $note, $image_path, $date, $time);
+
+        if ($stmt->execute()) {
+            $toastMessage = "add_success";
+        } else {
+            $toastMessage = "add_failed";
+        }
+
+        $stmt->close();
     }
 
-    $stmt->close();
+    $check_stmt->close();
     $conn->close();
 }
 ?>
@@ -172,42 +183,93 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
       font-size: 14px;
       color: #666;
     }
+
     .button-group {
-  display: flex;
-  gap: 15px;
-  margin-top: 15px;
-  flex-wrap: wrap;
-}
+      display: flex;
+      gap: 15px;
+      margin-top: 15px;
+      flex-wrap: wrap;
+    }
+
+    /* ✅ Toast 样式 */
+    .toast-container {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 9999;
+    }
+
+    .toast {
+      background-color: #4CAF50;
+      color: white;
+      padding: 14px 20px;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      font-size: 14px;
+      animation: fadeInOut 5s forwards;
+    }
+
+    .toast.error {
+      background-color: #ff4d4f;
+    }
+
+    @keyframes fadeInOut {
+      0% { opacity: 0; transform: translateY(-10px); }
+      10%, 90% { opacity: 1; transform: translateY(0); }
+      100% { opacity: 0; transform: translateY(-10px); }
+    }
   </style>
 </head>
 <body>
+  <!-- ✅ Toast 容器 -->
+  <div class="toast-container" id="toastContainer"></div>
+
   <div class="container">
     <!-- 左边表单 -->
-  <div class="order-container">
-  <h2>Order Stock</h2>
-  <form action="stock_order.php" method="POST" enctype="multipart/form-data">
-    <input type="text" name="item_name" placeholder="Item Name" required>
-    <input type="number" name="quantity" placeholder="Quantity" min="1" required>
-    <input type="text" name="item_code" placeholder="Item code" required>
-    <textarea name="note" placeholder="Additional Notes (optional)" rows="3"></textarea>
-    <input type="file" name="image" accept="image/jpeg, image/png" id="imageUpload">
-   
-    
-    <!-- 按钮包裹容器 -->
-    <div class="button-group">
-      <button type="submit" class="add-button">Add Item</button>
-      <button type="button" class="add-button" onclick="location.href='stock_manage.php'">Go back</button>
-    </div>
-  </form>
-</div>
+    <div class="order-container">
+      <h2>Order Stock</h2>
+      <form action="stock_order.php" method="POST" enctype="multipart/form-data">
+        <input type="text" name="item_name" placeholder="Item Name" required>
+        <input type="number" name="quantity" placeholder="Quantity" min="1" required>
+        <input type="text" name="item_code" placeholder="Item Code" required>
+        <textarea name="note" placeholder="Additional Notes (optional)" rows="3"></textarea>
+        <input type="file" name="image" accept="image/jpeg, image/png">
 
+        <div class="button-group">
+          <button type="submit">Add Item</button>
+          <button type="button" onclick="location.href='stock_manage.php'">Go back</button>
+        </div>
+      </form>
+    </div>
 
     <!-- 右边商品列表 -->
     <div class="product-list">
       <h2>Available Stocks</h2>
-
-      
+      <!-- 你可以在这里列出已有库存 -->
     </div>
   </div>
+
+  <!-- ✅ JS Toast 显示逻辑 -->
+  <script>
+    function showToast(message, isError = false) {
+      const container = document.getElementById("toastContainer");
+      const toast = document.createElement("div");
+      toast.className = "toast" + (isError ? " error" : "");
+      toast.textContent = message;
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.remove();
+      }, 5000);
+    }
+
+    // ✅ PHP 状态转为 Toast 显示
+    <?php if ($toastMessage === "add_success"): ?>
+      showToast("✅ Add item successful");
+    <?php elseif ($toastMessage === "add_failed"): ?>
+      showToast("❌ Add item failed", true);
+    <?php elseif ($toastMessage === "item_exists"): ?>
+      showToast("⚠️ This item already exists", true);
+    <?php endif; ?>
+  </script>
 </body>
 </html>
