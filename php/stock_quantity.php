@@ -57,6 +57,7 @@
       display: flex;
       align-items: center;
       gap: 10px;
+      flex-wrap: wrap;
     }
 
     .category-input label {
@@ -75,11 +76,21 @@
       width: 180px;
     }
 
+    .search-input {
+      padding: 8px 12px;
+      border-radius: 8px;
+      border: 2px solid #ccc;
+      background-color: #fafafa;
+      font-size: 14px;
+      color: #333;
+      width: 200px;
+    }
+
     .go-back-btn {
       display: flex;
       align-items: center;
       gap: 8px;
-      background: linear-gradient(to right, #6a11cb, #2575fc);
+      background-color: #8a76c4;
       color: white;
       border: none;
       padding: 10px 18px;
@@ -93,7 +104,7 @@
 
     .go-back-btn:hover {
       transform: translateY(-2px);
-      background: linear-gradient(to right, #7b2ff7, #1c92d2);
+      background-color: #7a68b6;
       box-shadow: 0 6px 18px rgba(0, 0, 0, 0.15);
     }
 
@@ -186,7 +197,7 @@
     <div class="header">
       <h1>Stock Quantity</h1>
       <div class="category-input">
-        <button onclick="history.back()" class="go-back-btn">← Go Back</button>
+        <input type="text" placeholder="Search Item" class="search-input">
         <label for="global-category">Category:</label>
         <select id="global-category" class="category-select">
           <option value="Stationery">Stationery</option>
@@ -194,12 +205,13 @@
           <option value="Office Supply">Office Supply</option>
           <option value="Others">Others</option>
         </select>
+        <button onclick="history.back()" class="go-back-btn">Go Back</button>
       </div>
     </div>
 
     <!-- Item Grid -->
     <div class="item-grid">
-      <!-- Item 1 -->
+      <!-- Example Items -->
       <div class="item-card">
         <div class="item-left">
           <input type="file" accept="image/*" onchange="previewImage(event, this)">
@@ -215,7 +227,6 @@
         </div>
       </div>
 
-      <!-- Item 2 -->
       <div class="item-card">
         <div class="item-left">
           <input type="file" accept="image/*" onchange="previewImage(event, this)">
@@ -231,7 +242,6 @@
         </div>
       </div>
 
-      <!-- Item 3 -->
       <div class="item-card">
         <div class="item-left">
           <input type="file" accept="image/*" onchange="previewImage(event, this)">

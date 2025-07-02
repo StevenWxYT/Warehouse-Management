@@ -152,7 +152,7 @@ $isLoggedIn = isset($_SESSION['username']);
 
     .add-button {
       padding: 12px 20px;
-      background-color: #6c63ff;
+      background-color: #8a76c4;
       color: white;
       border: none;
       border-radius: 10px;

@@ -27,7 +27,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         }
     }
 
-    // 检查是否已有相同 item_name 或 item_code
     $check_stmt = $conn->prepare("SELECT id FROM wmsitem WHERE item_name = ? OR item_code = ?");
     $check_stmt->bind_param("ss", $item_name, $item_code);
     $check_stmt->execute();
@@ -49,10 +48,12 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     }
 
     $check_stmt->close();
-    $conn->close();
 }
-?>
 
+// 获取库存记录
+$items_sql = "SELECT item_name, quantity, item_code, note, image_path FROM wmsitem ORDER BY item_id DESC LIMIT 10";
+$items_result = mysqli_query($conn, $items_sql);
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -93,15 +94,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
       flex: 1;
     }
 
-    .order-container {
-      animation: floaty 6s ease-in-out infinite;
-    }
-
-    @keyframes floaty {
-      0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(-5px); }
-    }
-
     h2 {
       margin-bottom: 25px;
       color: #333;
@@ -130,7 +122,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     button {
       width: 100%;
       padding: 12px;
-      background: #007bff;
+      background: #8a76c4;
       border: none;
       color: white;
       font-weight: bold;
@@ -141,9 +133,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     }
 
     button:hover {
-      background: #0056b3;
+      background: #6f5aa6;
       transform: scale(1.05);
-      box-shadow: 0 0 15px rgba(0, 123, 255, 0.5);
+      box-shadow: 0 0 15px rgba(138, 118, 196, 0.5);
     }
 
     .product-list {
@@ -191,7 +183,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
       flex-wrap: wrap;
     }
 
-    /* ✅ Toast 样式 */
     .toast-container {
       position: fixed;
       top: 20px;
@@ -221,7 +212,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
   </style>
 </head>
 <body>
-  <!-- ✅ Toast 容器 -->
   <div class="toast-container" id="toastContainer"></div>
 
   <div class="container">
@@ -245,7 +235,22 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     <!-- 右边商品列表 -->
     <div class="product-list">
       <h2>Available Stocks</h2>
-      <!-- 你可以在这里列出已有库存 -->
+      <?php if (mysqli_num_rows($items_result) > 0): ?>
+        <?php while($item = mysqli_fetch_assoc($items_result)): ?>
+          <div class="product-item">
+            <img src="<?php echo htmlspecialchars($item['image_path'] ?: 'https://via.placeholder.com/70'); ?>" alt="Item">
+            <div class="product-item-details">
+              <h4><?php echo htmlspecialchars($item['item_name']); ?> (<?php echo htmlspecialchars($item['item_code']); ?>)</h4>
+              <p>Quantity: <?php echo htmlspecialchars($item['quantity']); ?></p>
+              <?php if (!empty($item['note'])): ?>
+                <p>Note: <?php echo htmlspecialchars($item['note']); ?></p>
+              <?php endif; ?>
+            </div>
+          </div>
+        <?php endwhile; ?>
+      <?php else: ?>
+        <p>No stock available yet.</p>
+      <?php endif; ?>
     </div>
   </div>
 
@@ -262,7 +267,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
       }, 5000);
     }
 
-    // ✅ PHP 状态转为 Toast 显示
     <?php if ($toastMessage === "add_success"): ?>
       showToast("✅ Add item successful");
     <?php elseif ($toastMessage === "add_failed"): ?>

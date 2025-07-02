@@ -27,7 +27,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->execute();
 
         if ($stmt->affected_rows > 0) {
-            // 写入 item_log（无 id 字段）
+            // 写入 item_log
             $log_sql = "INSERT INTO item_log (item_id, item_code, quantity, status, date, time)
                         VALUES (?, ?, ?, 'out', CURDATE(), CURTIME())";
             $log_stmt = $conn->prepare($log_sql);
@@ -128,33 +128,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       font-weight: 400;
     }
 
-    .message {
-      padding: 14px;
-      border-radius: 8px;
-      text-align: center;
-      font-weight: 600;
-      font-size: 16px;
-      margin-top: 10px;
-      transition: all 0.3s ease;
-    }
-
-    .message:not(.error) {
-      background-color: #d4edda;
-      color: #2e7d32;
-      border: 1px solid #a5d6a7;
-    }
-
-    .message.error {
-      background-color: #fddede;
-      color: #c62828;
-      border: 1px solid #ef9a9a;
-    }
-
     .back-btn {
       margin-top: 20px;
       text-decoration: none;
       padding: 12px 20px;
-      background-color: #7e57c2;
+      background-color: #8a76c4;
       color: white;
       border-radius: 10px;
       font-size: 16px;
@@ -164,11 +142,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     .back-btn:hover {
-      background-color: #5e35b1;
+      background-color: #7b66b1;
+    }
+
+    /* ✅ Toast 样式 */
+    .toast-container {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 9999;
+    }
+
+    .toast {
+      background-color: #4CAF50;
+      color: white;
+      padding: 14px 20px;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      font-size: 14px;
+      margin-top: 10px;
+      animation: fadeInOut 4s forwards;
+    }
+
+    .toast.error {
+      background-color: #f44336;
+    }
+
+    @keyframes fadeInOut {
+      0% { opacity: 0; transform: translateY(-10px); }
+      10%, 90% { opacity: 1; transform: translateY(0); }
+      100% { opacity: 0; transform: translateY(-10px); }
     }
   </style>
 </head>
 <body>
+
+  <!-- ✅ Toast 容器 -->
+  <div class="toast-container" id="toastContainer"></div>
 
   <div class="container">
     <div class="header">
@@ -180,14 +190,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <input type="text" name="item_code" placeholder="Scan item code..." autofocus autocomplete="off">
     </form>
 
-    <?php if ($message): ?>
-      <div class="message <?= strpos($message, '✅') === false ? 'error' : '' ?>">
-        <?= $message ?>
-      </div>
-    <?php endif; ?>
-
     <!-- 返回按钮 -->
-    <a href="stock_manage.php" class="back-btn">← Back to Manage Stock</a>
+    <a href="stock_manage.php" class="back-btn">Back to Manage Stock</a>
   </div>
 
   <!-- 声音提示 -->
@@ -198,7 +202,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     document.addEventListener("DOMContentLoaded", function () {
       const input = document.querySelector('input[name="item_code"]');
       const form = document.getElementById("scanForm");
-
       input.focus();
       input.value = "";
 
@@ -208,6 +211,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
       <?php if ($message): ?>
         const success = <?= json_encode($success) ?>;
+        const message = <?= json_encode($message) ?>;
+        const toastContainer = document.getElementById("toastContainer");
+
+        const toast = document.createElement("div");
+        toast.className = "toast" + (success ? "" : " error");
+        toast.textContent = message;
+        toastContainer.appendChild(toast);
+
         if (success) {
           document.getElementById("successSound").play();
         } else {
