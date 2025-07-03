@@ -1,3 +1,40 @@
+  <?php
+include_once('db.php');
+
+// 处理更新与删除请求
+$response = null;
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $item_code = $_POST['item_code'];
+    if ($_POST['action'] === 'update') {
+        $quantity = intval($_POST['quantity']);
+        $stmt = $conn->prepare("UPDATE wmsitem SET quantity = ? WHERE item_code = ?");
+        $stmt->bind_param("is", $quantity, $item_code);
+        $response = $stmt->execute()
+            ? ['success' => true, 'message' => '✅ Add stock successful!']
+            : ['success' => false, 'message' => '❌ Failed to update stock.'];
+    }
+
+    if ($_POST['action'] === 'delete') {
+        $stmt = $conn->prepare("DELETE FROM wmsitem WHERE item_code = ?");
+        $stmt->bind_param("s", $item_code);
+        $response = $stmt->execute()
+            ? ['success' => true, 'message' => '🗑️ Item deleted successfully.']
+            : ['success' => false, 'message' => '❌ Failed to delete item.'];
+    }
+
+    // 如果是 AJAX 请求
+    if (isset($_SERVER['HTTP_X_REQUESTED_WITH'])) {
+        header('Content-Type: application/json');
+        echo json_encode($response);
+        exit;
+    }
+}
+
+// 获取所有商品
+$items_sql = "SELECT * FROM wmsitem ORDER BY item_code ASC";
+$query = mysqli_query($conn, $items_sql);
+?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -5,7 +42,7 @@
   <title>Stock Quantity</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
   <style>
-    * {
+      * {
       margin: 0;
       padding: 0;
       box-sizing: border-box;
@@ -189,7 +226,7 @@
 
     .delete-btn:hover {
       background-color: #c82333;
-    }
+    } 
   </style>
 </head>
 <body>
@@ -197,9 +234,10 @@
     <div class="header">
       <h1>Stock Quantity</h1>
       <div class="category-input">
-        <input type="text" placeholder="Search Item" class="search-input">
+        <input type="text" placeholder="Search Item" class="search-input" id="searchInput">
         <label for="global-category">Category:</label>
         <select id="global-category" class="category-select">
+          <option value="">All</option>
           <option value="Stationery">Stationery</option>
           <option value="Electronics">Electronics</option>
           <option value="Office Supply">Office Supply</option>
@@ -210,15 +248,14 @@
     </div>
 
     <!-- Item Grid -->
-    <div class="item-grid">
-      <!-- Example Items -->
-      <div class="item-card">
+    <div class="item-grid" id="itemGrid">
+      <?php while ($row = mysqli_fetch_assoc($query)): ?>
+      <div class="item-card" data-category="<?= $row['category_id'] ?>">
         <div class="item-left">
-          <input type="file" accept="image/*" onchange="previewImage(event, this)">
-          <img src="https://via.placeholder.com/120?text=NB" alt="Notebook">
+          <img src="<?= htmlspecialchars($row['image_path']) ?>" alt="<?= htmlspecialchars($row['item_name']) ?>">
           <div class="item-info">
-            <label>ITM001</label>
-            <input type="number" value="120" class="qty-input">
+            <label><?= htmlspecialchars($row['item_code']) ?></label>
+            <input type="number" value="<?= $row['quantity'] ?>" class="qty-input">
           </div>
         </div>
         <div class="actions">
@@ -226,71 +263,70 @@
           <button class="btn delete-btn">Delete</button>
         </div>
       </div>
-
-      <div class="item-card">
-        <div class="item-left">
-          <input type="file" accept="image/*" onchange="previewImage(event, this)">
-          <img src="https://via.placeholder.com/120?text=Pen" alt="Pen">
-          <div class="item-info">
-            <label>ITM002</label>
-            <input type="number" value="250" class="qty-input">
-          </div>
-        </div>
-        <div class="actions">
-          <button class="btn update-btn">Update</button>
-          <button class="btn delete-btn">Delete</button>
-        </div>
-      </div>
-
-      <div class="item-card">
-        <div class="item-left">
-          <input type="file" accept="image/*" onchange="previewImage(event, this)">
-          <img src="https://via.placeholder.com/120?text=Marker" alt="Marker">
-          <div class="item-info">
-            <label>ITM003</label>
-            <input type="number" value="75" class="qty-input">
-          </div>
-        </div>
-        <div class="actions">
-          <button class="btn update-btn">Update</button>
-          <button class="btn delete-btn">Delete</button>
-        </div>
-      </div>
+      <?php endwhile; ?>
     </div>
   </div>
 
+  <div id="toast" style="position: fixed; top: 20px; right: 20px; z-index: 9999;"></div>
+
   <script>
-    function previewImage(event, input) {
-      const file = input.files[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-          const img = input.nextElementSibling;
-          img.src = e.target.result;
-          input.style.display = "none";
-        };
-        reader.readAsDataURL(file);
-      }
+    function showToast(message, success = true) {
+      const toast = document.createElement('div');
+      toast.textContent = message;
+      toast.style.background = success ? '#4CAF50' : '#dc3545';
+      toast.style.color = 'white';
+      toast.style.padding = '12px 20px';
+      toast.style.marginBottom = '10px';
+      toast.style.borderRadius = '8px';
+      toast.style.boxShadow = '0 4px 8px rgba(0,0,0,0.1)';
+      toast.style.animation = 'fadeOut 4s forwards';
+      document.getElementById('toast').appendChild(toast);
+      setTimeout(() => toast.remove(), 4000);
     }
 
     document.addEventListener("click", function(e) {
       const target = e.target;
 
-      if (target.classList.contains("update-btn")) {
+      if (target.classList.contains("update-btn") || target.classList.contains("delete-btn")) {
         const item = target.closest(".item-card");
-        const label = item.querySelector("label").textContent;
-        const qty = item.querySelector(".qty-input").value;
-        const globalCategory = document.getElementById("global-category").value || "N/A";
-        alert(`Quantity for item code "${label}" updated to ${qty}\nCategory: ${globalCategory}`);
-      }
+        const itemCode = item.querySelector("label").textContent;
+        const qty = item.querySelector(".qty-input")?.value || 0;
+        const action = target.classList.contains("update-btn") ? "update" : "delete";
 
-      if (target.classList.contains("delete-btn")) {
-        const item = target.closest(".item-card");
-        const label = item.querySelector("label").textContent;
-        if (confirm(`Are you sure you want to delete item "${label}"?`)) {
-          item.remove();
+        const formData = new FormData();
+        formData.append("action", action);
+        formData.append("item_code", itemCode);
+        if (action === "update") {
+          formData.append("quantity", qty);
         }
+
+        fetch("", {
+          method: "POST",
+          body: formData,
+          headers: { "X-Requested-With": "XMLHttpRequest" }
+        })
+        .then(res => res.json())
+        .then(data => {
+          showToast(data.message, data.success);
+          if (data.success) setTimeout(() => location.reload(), 1200);
+        });
       }
+    });
+
+    document.getElementById("searchInput").addEventListener("input", function() {
+      const keyword = this.value.toLowerCase();
+      document.querySelectorAll(".item-card").forEach(card => {
+        const code = card.querySelector("label").textContent.toLowerCase();
+        card.style.display = code.includes(keyword) ? "flex" : "none";
+      });
+    });
+
+    document.getElementById("global-category").addEventListener("change", function() {
+      const category = this.value;
+      document.querySelectorAll(".item-card").forEach(card => {
+        const cardCategory = card.dataset.category;
+        card.style.display = !category || category === cardCategory ? "flex" : "none";
+      });
     });
   </script>
 </body>

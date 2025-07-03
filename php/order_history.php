@@ -1,23 +1,56 @@
+<?php
+include_once('db.php');
+
+// 获取搜索和筛选条件
+$search = isset($_GET['search']) ? $_GET['search'] : '';
+$status = isset($_GET['status']) ? $_GET['status'] : '';
+
+// SQL 查询
+$sql = "
+  SELECT 
+    l.log_id,
+    i.item_code,
+    i.quantity,
+    l.status,
+    l.date,
+    l.time
+  FROM wmsitem_log l
+  JOIN wmsitem i ON l.item_id = i.item_id
+  WHERE i.item_code LIKE ?
+";
+
+$params = ["%$search%"];
+$types = "s";
+
+if ($status !== '') {
+  $sql .= " AND l.status = ?";
+  $params[] = $status;
+  $types .= "s";
+}
+
+$sql .= " ORDER BY l.date DESC, l.time DESC";
+
+$stmt = $conn->prepare($sql);
+$stmt->bind_param($types, ...$params);
+$stmt->execute();
+$result = $stmt->get_result();
+?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Order History</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-      font-family: 'Inter', sans-serif;
-    }
-
+   
     body {
       background: linear-gradient(135deg, #ff9a9e, #fad0c4, #fbc2eb, #a18cd1);
       background-size: 400% 400%;
       animation: gradientBG 15s ease infinite;
       padding: 40px 20px;
       min-height: 100vh;
+      font-family: 'Inter', sans-serif;
     }
 
     @keyframes gradientBG {
@@ -83,7 +116,7 @@
     }
 
     .order-list {
-      max-width: 900px;
+      max-width: 1000px;
       margin: 0 auto;
       display: flex;
       flex-direction: column;
@@ -99,15 +132,10 @@
       flex-wrap: wrap;
       justify-content: space-between;
       gap: 20px;
-      transition: transform 0.3s ease;
-    }
-
-    .order-card:hover {
-      transform: translateY(-4px);
     }
 
     .order-field {
-      flex: 1 1 45%;
+      flex: 1 1 30%;
       display: flex;
       flex-direction: column;
     }
@@ -134,21 +162,15 @@
       font-size: 14px;
       font-weight: bold;
       text-align: center;
-      display: inline-block;
       width: fit-content;
     }
 
-    .completed {
+    .in {
       background-color: #d4edda;
       color: #155724;
     }
 
-    .pending {
-      background-color: #fff3cd;
-      color: #856404;
-    }
-
-    .cancelled {
+    .out {
       background-color: #f8d7da;
       color: #721c24;
     }
@@ -168,81 +190,48 @@
 
   <div class="header">
     <h1>Order History</h1>
-    <div class="controls">
-      <input type="text" id="searchInput" placeholder="Search Item Name">
-      <select id="statusFilter">
+    <form class="controls" method="get">
+      <input type="text" name="search" placeholder="Search Item Code" value="<?= htmlspecialchars($search) ?>">
+      <select name="status">
         <option value="">All Status</option>
-        <option value="Completed">Completed</option>
-        <option value="Pending">Pending</option>
-        <option value="Cancelled">Cancelled</option>
+        <option value="in" <?= $status === 'in' ? 'selected' : '' ?>>In</option>
+        <option value="out" <?= $status === 'out' ? 'selected' : '' ?>>Out</option>
       </select>
-      <button onclick="history.back()" class="go-back-btn">Go Back</button>
-    </div>
+      <button type="submit" class="go-back-btn">Search</button>
+      <button type="button" onclick="history.back()" class="go-back-btn">Go Back</button>
+    </form>
   </div>
 
-  <div class="order-list" id="orderList">
-    <!-- Order cards will be inserted here by JS -->
+  <div class="order-list">
+    <?php while ($row = $result->fetch_assoc()): ?>
+      <div class="order-card">
+        <div class="order-field">
+          <label>Order ID</label>
+          <input type="text" value="<?= $row['log_id'] ?>" readonly>
+        </div>
+        <div class="order-field">
+          <label>Item Code</label>
+          <input type="text" value="<?= $row['item_code'] ?>" readonly>
+        </div>
+        <div class="order-field">
+          <label>Quantity</label>
+          <input type="text" value="<?= $row['quantity'] ?>" readonly>
+        </div>
+        <div class="order-field">
+          <label>Date</label>
+          <input type="text" value="<?= $row['date'] ?>" readonly>
+        </div>
+        <div class="order-field">
+          <label>Time</label>
+          <input type="text" value="<?= $row['time'] ?>" readonly>
+        </div>
+        <div class="order-field">
+          <label>Status</label>
+          <span class="status-badge <?= $row['status'] ?>"><?= ucfirst($row['status']) ?></span>
+        </div>
+      </div>
+    <?php endwhile; ?>
   </div>
-
-  <script>
-    const orders = [
-      { id: '1001', name: 'Wireless Mouse', quantity: 2, date: '2025-07-01', status: 'Completed' },
-      { id: '1002', name: 'Bluetooth Speaker', quantity: 1, date: '2025-07-01', status: 'Pending' },
-      { id: '1003', name: 'USB-C Cable', quantity: 5, date: '2025-06-30', status: 'Cancelled' },
-      { id: '1004', name: 'Laptop Stand', quantity: 3, date: '2025-06-29', status: 'Completed' },
-      { id: '1005', name: 'Keyboard', quantity: 2, date: '2025-06-28', status: 'Pending' }
-    ];
-
-    const orderList = document.getElementById('orderList');
-    const searchInput = document.getElementById('searchInput');
-    const statusFilter = document.getElementById('statusFilter');
-
-    function renderOrders(data) {
-      orderList.innerHTML = '';
-      data.forEach(order => {
-        const card = document.createElement('div');
-        card.className = 'order-card';
-        card.innerHTML = `
-          <div class="order-field">
-            <label>Order ID</label>
-            <input type="text" value="${order.id}" readonly>
-          </div>
-          <div class="order-field">
-            <label>Item Name</label>
-            <input type="text" value="${order.name}" readonly>
-          </div>
-          <div class="order-field">
-            <label>Quantity</label>
-            <input type="text" value="${order.quantity}" readonly>
-          </div>
-          <div class="order-field">
-            <label>Order Date</label>
-            <input type="text" value="${order.date}" readonly>
-          </div>
-          <div class="order-field">
-            <label>Status</label>
-            <span class="status-badge ${order.status.toLowerCase()}">${order.status}</span>
-          </div>
-        `;
-        orderList.appendChild(card);
-      });
-    }
-
-    function filterOrders() {
-      const keyword = searchInput.value.toLowerCase();
-      const status = statusFilter.value;
-      const filtered = orders.filter(order => {
-        const matchName = order.name.toLowerCase().includes(keyword);
-        const matchStatus = status === '' || order.status === status;
-        return matchName && matchStatus;
-      });
-      renderOrders(filtered);
-    }
-
-    renderOrders(orders);
-    searchInput.addEventListener('input', filterOrders);
-    statusFilter.addEventListener('change', filterOrders);
-  </script>
 
 </body>
 </html>

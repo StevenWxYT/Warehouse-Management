@@ -242,7 +242,6 @@ $isLoggedIn = isset($_SESSION['username']);
       opacity: 1;
     }
 
-    /* ✅ Toast 样式 */
     .toast-container {
       position: fixed;
       top: 20px;
@@ -263,32 +262,13 @@ $isLoggedIn = isset($_SESSION['username']);
       animation: fadeInOut 5s forwards;
       max-width: 320px;
       line-height: 1.4;
+      white-space: pre-line;
     }
 
     @keyframes fadeInOut {
       0% { opacity: 0; transform: translateY(-10px); }
       10%, 90% { opacity: 1; transform: translateY(0); }
       100% { opacity: 0; transform: translateY(-10px); }
-    }
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-      font-family: 'Inter', sans-serif;
-    }
-
-    body {
-      height: 100vh;
-      display: flex;
-      background: linear-gradient(-45deg, #ff9a9e, #fad0c4, #fbc2eb, #a18cd1);
-      background-size: 400% 400%;
-      animation: gradientBG 15s ease infinite;
-    }
-
-    @keyframes gradientBG {
-      0% { background-position: 0% 50%; }
-      50% { background-position: 100% 50%; }
-      100% { background-position: 0% 50%; }
     }
 
     .user-profile {
@@ -299,13 +279,19 @@ $isLoggedIn = isset($_SESSION['username']);
       cursor: pointer;
     }
 
-    .avatar {
+    .avatar-text {
       width: 44px;
       height: 44px;
       border-radius: 50%;
+      background-color: #8a76c4;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 18px;
       border: 2px solid white;
       box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-      object-fit: cover;
     }
 
     .user-card {
@@ -338,50 +324,21 @@ $isLoggedIn = isset($_SESSION['username']);
       font-size: 14px;
       color: #666;
     }
-
-     .toast-container {
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      z-index: 9999;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-
-    .toast {
-      background-color: #ff4d4f;
-      color: white;
-      padding: 14px 20px;
-      border-radius: 8px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-      font-size: 14px;
-      animation: fadeInOut 5s forwards;
-      max-width: 320px;
-      line-height: 1.4;
-      white-space: pre-line;
-    }
-
-    @keyframes fadeInOut {
-      0% { opacity: 0; transform: translateY(-10px); }
-      10%, 90% { opacity: 1; transform: translateY(0); }
-      100% { opacity: 0; transform: translateY(-10px); }
-    }
   </style>
 </head>
 <body>
-  <!-- ✅ Toast容器 -->
   <div class="toast-container" id="toastContainer"></div>
 
   <div class="sidebar" id="sidebar">
     <div class="dropdown-section">
       <button class="dropdown-toggle" onclick="toggleDropdown()" title="Tools">☰</button>
+       <img src="wms2.jpg" alt="Warehouse Logo" class="logo-icon">
       <div class="dropdown-content" id="dropdownContent">
         <button onclick="window.location.href='best_sales.php'"><i data-lucide="wrench"></i><span>Top ten best sales</span></button>
-        <button onclick="window.location.href='Sales_report.php'"><i data-lucide="settings"></i><span>Sales report</span></button>
+        <button onclick="window.location.href='Sales_report.php'"><i data-lucide="dollar-sign"></i><span>Sales report</span></button>
+        <button onclick="window.location.href='add_category.php'"><i data-lucide="loader"></i><span>Add category</span></button>
       </div>
     </div>
-
     <button onclick="window.location.href='stock_quantity.php'">
       <i data-lucide="package"></i><span>View Stock Quantity</span>
     </button>
@@ -389,12 +346,11 @@ $isLoggedIn = isset($_SESSION['username']);
       <i data-lucide="history"></i><span>View Order History</span>
     </button>
     <button onclick="window.location.href='stock_order.php'">
-      <i data-lucide="shopping-cart"></i><span>Order Stocks</span>
+      <i data-lucide="shopping-cart"></i><span>Order New Stocks</span>
     </button>
-     <button onclick="window.location.href='stock_out.php'">
+    <button onclick="window.location.href='stock_out.php'">
       <i data-lucide="shopping-cart"></i><span>Stock out</span>
     </button>
-
     <?php if ($isLoggedIn): ?>
       <div class="auth-buttons">
         <button onclick="window.location.href='logout.php'">
@@ -413,9 +369,9 @@ $isLoggedIn = isset($_SESSION['username']);
     <?php endif; ?>
   </div>
 
-   <?php if ($isLoggedIn): ?>
+  <?php if ($isLoggedIn): ?>
     <div class="user-profile" onclick="toggleUserCard()">
-      <img src="https://i.imgur.com/1XU79G5.png" alt="User Avatar" class="avatar">
+      <div class="avatar-text">U</div>
     </div>
     <div class="user-card" id="userCard">
       <h4><?= htmlspecialchars($_SESSION['username']) ?></h4>
@@ -439,13 +395,13 @@ $isLoggedIn = isset($_SESSION['username']);
 
       <div class="stock-grid" id="stockGrid">
         <?php while ($item = mysqli_fetch_assoc($query)): ?>
-          <div class="stock-card" data-category="<?= $item['category'] ?>">
-            <img src="<?= $item['image_url'] ?>" alt="<?= $item['item_name'] ?>">
+          <div class="stock-card" data-category="<?= $item['category_id'] ?>">
+            <img src="<?= $item['image_path'] ?>" alt="<?= $item['item_name'] ?>">
             <div class="stock-info">
               <h3><?= $item['item_name'] ?></h3>
               <p>Code: <?= $item['item_code'] ?></p>
               <p>Qty: <?= $item['quantity'] ?></p>
-              <p>Category: <?= $item['category'] ?></p>
+              <p>Category: <?= $item['category_id'] ?></p>
             </div>
           </div>
         <?php endwhile; ?>
@@ -482,7 +438,6 @@ $isLoggedIn = isset($_SESSION['username']);
       dropdown.classList.toggle('show');
     }
 
-    // ✅ Toast 弹窗显示函数
     function showToast(message) {
       const container = document.getElementById('toastContainer');
       const toast = document.createElement('div');
@@ -494,7 +449,6 @@ $isLoggedIn = isset($_SESSION['username']);
       }, 5000);
     }
 
-    // ✅ 自动检查库存函数
     function checkLowStock(threshold = 10) {
       const cards = document.querySelectorAll('.stock-card');
       let lowStockItems = [];
@@ -514,9 +468,8 @@ $isLoggedIn = isset($_SESSION['username']);
       }
     }
 
-    // 页面载入后自动检查库存
     window.addEventListener('DOMContentLoaded', () => {
-      checkLowStock(10); // 可自定义最低库存数
+      checkLowStock(10);
     });
 
     lucide.createIcons();

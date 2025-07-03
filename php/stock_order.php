@@ -3,11 +3,16 @@ include_once('db.php');
 
 $toastMessage = "";
 
+// 获取分类数据
+$category_sql = "SELECT category_id, category FROM wmscategory";
+$category_result = mysqli_query($conn, $category_sql);
+
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $item_name = $_POST['item_name'];
     $quantity = $_POST['quantity'];
     $item_code = $_POST['item_code'];
     $note = $_POST['note'] ?? '';
+    $category_id = $_POST['category_id'];
     $date = date("Y-m-d");
     $time = date("H:i:s");
 
@@ -27,16 +32,16 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         }
     }
 
-    $check_stmt = $conn->prepare("SELECT id FROM wmsitem WHERE item_name = ? OR item_code = ?");
-    $check_stmt->bind_param("ss", $item_name, $item_code);
+    $check_stmt = $conn->prepare("SELECT item_id FROM wmsitem WHERE item_code = ?");
+    $check_stmt->bind_param("s", $item_code);
     $check_stmt->execute();
     $check_stmt->store_result();
 
     if ($check_stmt->num_rows > 0) {
         $toastMessage = "item_exists";
     } else {
-        $stmt = $conn->prepare("INSERT INTO wmsitem (item_name, quantity, item_code, note, image_path, date, time) VALUES (?, ?, ?, ?, ?, ?, ?)");
-        $stmt->bind_param("sisssss", $item_name, $quantity, $item_code, $note, $image_path, $date, $time);
+        $stmt = $conn->prepare("INSERT INTO wmsitem (item_name, quantity, item_code, note, image_path, date, time, category_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+        $stmt->bind_param("sisssssi", $item_name, $quantity, $item_code, $note, $image_path, $date, $time, $category_id);
 
         if ($stmt->execute()) {
             $toastMessage = "add_success";
@@ -50,7 +55,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $check_stmt->close();
 }
 
-// 获取库存记录
 $items_sql = "SELECT item_name, quantity, item_code, note, image_path FROM wmsitem ORDER BY item_id DESC LIMIT 10";
 $items_result = mysqli_query($conn, $items_sql);
 ?>
@@ -99,7 +103,7 @@ $items_result = mysqli_query($conn, $items_sql);
       color: #333;
     }
 
-    input, textarea {
+    input, textarea, select {
       width: 100%;
       padding: 12px;
       margin-bottom: 18px;
@@ -109,7 +113,7 @@ $items_result = mysqli_query($conn, $items_sql);
       transition: 0.3s ease;
     }
 
-    input:focus, textarea:focus {
+    input:focus, textarea:focus, select:focus {
       border-color: #007bff;
       box-shadow: 0 0 12px rgba(0, 123, 255, 0.4);
       outline: none;
@@ -215,24 +219,33 @@ $items_result = mysqli_query($conn, $items_sql);
   <div class="toast-container" id="toastContainer"></div>
 
   <div class="container">
-    <!-- 左边表单 -->
     <div class="order-container">
       <h2>Order Stock</h2>
       <form action="stock_order.php" method="POST" enctype="multipart/form-data">
+
+        <select name="category_id" required>
+          <option value="" disabled selected>Select Category</option>
+          <?php while($cat = mysqli_fetch_assoc($category_result)): ?>
+            <option value="<?php echo $cat['category_id']; ?>">
+              <?php echo htmlspecialchars($cat['category']); ?>
+            </option>
+          <?php endwhile; ?>
+        </select>
+
         <input type="text" name="item_name" placeholder="Item Name" required>
         <input type="number" name="quantity" placeholder="Quantity" min="1" required>
-        <input type="text" name="item_code" placeholder="Item Code" required>
+        <input type="text" name="item_code" placeholder="Item Code (Must be unique)" required>
         <textarea name="note" placeholder="Additional Notes (optional)" rows="3"></textarea>
         <input type="file" name="image" accept="image/jpeg, image/png">
 
         <div class="button-group">
+          <button type="button" onclick="location.href='add_category.php'">Add Category</button>
           <button type="submit">Add Item</button>
           <button type="button" onclick="location.href='stock_manage.php'">Go back</button>
         </div>
       </form>
     </div>
 
-    <!-- 右边商品列表 -->
     <div class="product-list">
       <h2>Available Stocks</h2>
       <?php if (mysqli_num_rows($items_result) > 0): ?>
@@ -254,7 +267,6 @@ $items_result = mysqli_query($conn, $items_sql);
     </div>
   </div>
 
-  <!-- ✅ JS Toast 显示逻辑 -->
   <script>
     function showToast(message, isError = false) {
       const container = document.getElementById("toastContainer");
@@ -262,9 +274,7 @@ $items_result = mysqli_query($conn, $items_sql);
       toast.className = "toast" + (isError ? " error" : "");
       toast.textContent = message;
       container.appendChild(toast);
-      setTimeout(() => {
-        toast.remove();
-      }, 5000);
+      setTimeout(() => toast.remove(), 5000);
     }
 
     <?php if ($toastMessage === "add_success"): ?>
@@ -272,7 +282,7 @@ $items_result = mysqli_query($conn, $items_sql);
     <?php elseif ($toastMessage === "add_failed"): ?>
       showToast("❌ Add item failed", true);
     <?php elseif ($toastMessage === "item_exists"): ?>
-      showToast("⚠️ This item already exists", true);
+      showToast("⚠️ This item code already exists", true);
     <?php endif; ?>
   </script>
 </body>
