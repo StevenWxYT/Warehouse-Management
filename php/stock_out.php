@@ -57,7 +57,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       font-family: 'Inter', sans-serif;
       margin: 0;
       padding: 0;
-      background: linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%);
+      background: linear-gradient(135deg, #fdfbfb, #ebedee, #e0d9f5, #e6f0ff);
       display: flex;
       justify-content: center;
       align-items: center;

@@ -1,6 +1,6 @@
 <?php
 include_once('db.php');
-session_start(); // 开启 Session
+session_start();
 
 $items_sql = "SELECT * FROM `wmsitem`";
 $query = mysqli_query($conn, $items_sql);
@@ -29,15 +29,50 @@ $isLoggedIn = isset($_SESSION['username']);
     body {
       height: 100vh;
       display: flex;
-      background: linear-gradient(-45deg, #ff9a9e, #fad0c4, #fbc2eb, #a18cd1);
+      background: linear-gradient(-45deg, #fdfbfb, #ebedee, #e0d9f5, #e6f0ff);
       background-size: 400% 400%;
       animation: gradientBG 15s ease infinite;
+      padding-top: 60px;
     }
 
     @keyframes gradientBG {
       0% { background-position: 0% 50%; }
       50% { background-position: 100% 50%; }
       100% { background-position: 0% 50%; }
+    }
+
+    .top-nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 60px;
+      background-color: rgba(255, 255, 255, 0.9);
+      backdrop-filter: blur(10px);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 30px;
+      z-index: 9999;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+
+    .top-nav .nav-title {
+      font-size: 20px;
+      font-weight: 600;
+      color: #333;
+    }
+
+    .top-nav .nav-links a {
+      margin-left: 20px;
+      text-decoration: none;
+      color: #555;
+      font-weight: 500;
+      transition: color 0.3s ease;
+    }
+
+    .top-nav .nav-links a:hover {
+      color: #8a76c4;
     }
 
     .sidebar {
@@ -85,20 +120,20 @@ $isLoggedIn = isset($_SESSION['username']);
       display: flex;
       align-items: center;
       gap: 12px;
-      background: linear-gradient(135deg, #a18cd1, #fbc2eb);
+      background: linear-gradient(135deg, #e0d9f5, #e6f0ff);
       border: none;
       cursor: pointer;
       font-size: 15px;
       padding: 12px 16px;
       border-radius: 12px;
-      color: white;
+      color: black;
       font-weight: 600;
       box-shadow: 0 6px 16px rgba(0,0,0,0.08);
       transition: background 0.3s ease, transform 0.2s ease;
     }
 
     .auth-buttons button:hover {
-      background: linear-gradient(135deg, #8e7be5, #f4aee3);
+      background: linear-gradient(135deg, #e0d9f5, #e6f0ff);
       transform: translateY(-2px);
     }
 
@@ -140,7 +175,6 @@ $isLoggedIn = isset($_SESSION['username']);
       border-radius: 10px;
       border: 1px solid #ccc;
       font-size: 15px;
-      width: 100%;
       max-width: 300px;
       transition: box-shadow 0.3s ease;
     }
@@ -168,7 +202,7 @@ $isLoggedIn = isset($_SESSION['username']);
 
     .stock-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      grid-template-columns: repeat(3, 1fr);
       gap: 25px;
     }
 
@@ -185,8 +219,8 @@ $isLoggedIn = isset($_SESSION['username']);
     }
 
     .stock-card img {
-      width: 100%;
-      height: 180px;
+      width: 50%;
+      height: 120px;
       object-fit: cover;
     }
 
@@ -244,7 +278,7 @@ $isLoggedIn = isset($_SESSION['username']);
 
     .toast-container {
       position: fixed;
-      top: 20px;
+      top: 80px;
       right: 20px;
       z-index: 9999;
       display: flex;
@@ -327,15 +361,20 @@ $isLoggedIn = isset($_SESSION['username']);
   </style>
 </head>
 <body>
+  <nav class="top-nav">
+    <div class="nav-title">📦 Warehouse System</div>
+    <div class="nav-links">
+      <a href="Sales_report.php">Dashboard</a>
+      <a href="best_sales.php">Best seller</a>
+    </div>
+  </nav>
+
   <div class="toast-container" id="toastContainer"></div>
 
-  <div class="sidebar" id="sidebar">
+<div class="sidebar" id="sidebar">
     <div class="dropdown-section">
       <button class="dropdown-toggle" onclick="toggleDropdown()" title="Tools">☰</button>
-       <img src="wms2.jpg" alt="Warehouse Logo" class="logo-icon">
       <div class="dropdown-content" id="dropdownContent">
-        <button onclick="window.location.href='best_sales.php'"><i data-lucide="wrench"></i><span>Top ten best sales</span></button>
-        <button onclick="window.location.href='Sales_report.php'"><i data-lucide="dollar-sign"></i><span>Sales report</span></button>
         <button onclick="window.location.href='add_category.php'"><i data-lucide="loader"></i><span>Add category</span></button>
       </div>
     </div>
@@ -387,7 +426,7 @@ $isLoggedIn = isset($_SESSION['username']);
         <select id="categoryFilter">
           <option value="all">All Categories</option>
           <?php while ($row = mysqli_fetch_assoc($category_result)): ?>
-            <option value="<?= $row['category_name'] ?>"><?= $row['category_name'] ?></option>
+            <option value="<?= $row['category'] ?>"><?= $row['category'] ?></option>
           <?php endwhile; ?>
         </select>
         <input type="text" id="searchInput" placeholder="Search by name or code...">
@@ -410,6 +449,7 @@ $isLoggedIn = isset($_SESSION['username']);
   </div>
 
   <script>
+    // JS 保持不变
     const searchInput = document.getElementById('searchInput');
     const categoryFilter = document.getElementById('categoryFilter');
 
@@ -430,8 +470,8 @@ $isLoggedIn = isset($_SESSION['username']);
       });
     }
 
-    searchInput.addEventListener('input', filterStock);
-    categoryFilter.addEventListener('change', filterStock);
+    searchInput?.addEventListener('input', filterStock);
+    categoryFilter?.addEventListener('change', filterStock);
 
     function toggleDropdown() {
       const dropdown = document.getElementById('dropdownContent');
@@ -444,9 +484,7 @@ $isLoggedIn = isset($_SESSION['username']);
       toast.className = 'toast';
       toast.innerText = message;
       container.appendChild(toast);
-      setTimeout(() => {
-        toast.remove();
-      }, 5000);
+      setTimeout(() => toast.remove(), 5000);
     }
 
     function checkLowStock(threshold = 10) {

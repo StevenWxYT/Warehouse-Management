@@ -68,7 +68,7 @@ $items_result = mysqli_query($conn, $items_sql);
     body {
       margin: 0;
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: linear-gradient(-45deg, #d9afd9, #97d9e1, #fbc2eb, #a1c4fd);
+      background: linear-gradient(-45deg, #fdfbfb, #ebedee, #e0d9f5, #e6f0ff);
       background-size: 400% 400%;
       animation: gradientFlow 15s ease infinite;
       height: 100vh;

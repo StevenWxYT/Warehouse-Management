@@ -35,7 +35,7 @@ $result = $stmt->get_result();
 
     body {
       min-height: 100vh;
-      background: linear-gradient(-45deg, #a18cd1, #fbc2eb, #fad0c4, #ff9a9e);
+      background: linear-gradient(-45deg, #fdfbfb, #ebedee, #e0d9f5, #e6f0ff);
       background-size: 400% 400%;
       animation: gradientMove 15s ease infinite;
       display: flex;

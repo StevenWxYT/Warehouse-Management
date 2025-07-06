@@ -45,7 +45,7 @@ $result = $stmt->get_result();
   <style>
    
     body {
-      background: linear-gradient(135deg, #ff9a9e, #fad0c4, #fbc2eb, #a18cd1);
+      background: linear-gradient(135deg, #fdfbfb, #ebedee, #e0d9f5, #e6f0ff);
       background-size: 400% 400%;
       animation: gradientBG 15s ease infinite;
       padding: 40px 20px;
