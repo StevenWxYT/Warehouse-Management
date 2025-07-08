@@ -1,5 +1,6 @@
 <?php
 include_once('db.php');
+session_start(); // 开启 Session
 
 $toastMessage = "";
 
@@ -16,6 +17,16 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $date = date("Y-m-d");
     $time = date("H:i:s");
 
+    // 获取 category 名称
+    $category = '';
+    $cat_query = $conn->prepare("SELECT category FROM wmscategory WHERE category_id = ?");
+    $cat_query->bind_param("i", $category_id);
+    $cat_query->execute();
+    $cat_query->bind_result($category);
+    $cat_query->fetch();
+    $cat_query->close();
+
+    // 上传图片处理
     $image_path = "";
     if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
         $upload_dir = 'uploads/';
@@ -32,6 +43,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         }
     }
 
+    // 检查 item_code 是否已存在
     $check_stmt = $conn->prepare("SELECT item_id FROM wmsitem WHERE item_code = ?");
     $check_stmt->bind_param("s", $item_code);
     $check_stmt->execute();
@@ -40,21 +52,26 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     if ($check_stmt->num_rows > 0) {
         $toastMessage = "item_exists";
     } else {
-        $stmt = $conn->prepare("INSERT INTO wmsitem (item_name, quantity, item_code, note, image_path, date, time, category_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-        $stmt->bind_param("sisssssi", $item_name, $quantity, $item_code, $note, $image_path, $date, $time, $category_id);
-
-        if ($stmt->execute()) {
-            $toastMessage = "add_success";
-        } else {
-            $toastMessage = "add_failed";
+        // 加入 session check_list
+        if (!isset($_SESSION['check_list'])) {
+            $_SESSION['check_list'] = [];
         }
+        $_SESSION['check_list'][] = [
+            'item_name' => $item_name,
+            'item_code' => $item_code,
+            'quantity' => $quantity,
+            'category_id' => $category_id,
+            'category' => $category
+        ];
 
-        $stmt->close();
+        header("Location: check_list.php");
+        exit();
     }
 
     $check_stmt->close();
 }
 
+// 显示当前库存中的最近10项
 $items_sql = "SELECT item_name, quantity, item_code, note, image_path FROM wmsitem ORDER BY item_id DESC LIMIT 10";
 $items_result = mysqli_query($conn, $items_sql);
 ?>
@@ -277,11 +294,7 @@ $items_result = mysqli_query($conn, $items_sql);
       setTimeout(() => toast.remove(), 5000);
     }
 
-    <?php if ($toastMessage === "add_success"): ?>
-      showToast("✅ Add item successful");
-    <?php elseif ($toastMessage === "add_failed"): ?>
-      showToast("❌ Add item failed", true);
-    <?php elseif ($toastMessage === "item_exists"): ?>
+    <?php if ($toastMessage === "item_exists"): ?>
       showToast("⚠️ This item code already exists", true);
     <?php endif; ?>
   </script>
