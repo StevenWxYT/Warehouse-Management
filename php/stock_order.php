@@ -1,6 +1,6 @@
 <?php
 include_once('db.php');
-session_start(); // 开启 Session
+session_start();
 
 $toastMessage = "";
 
@@ -12,12 +12,13 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $item_name = $_POST['item_name'];
     $quantity = $_POST['quantity'];
     $item_code = $_POST['item_code'];
+    $unit_price = $_POST['unit_price']; // ⬅️ 获取单价
     $note = $_POST['note'] ?? '';
     $category_id = $_POST['category_id'];
     $date = date("Y-m-d");
     $time = date("H:i:s");
 
-    // 获取 category 名称
+    // 获取分类名称
     $category = '';
     $cat_query = $conn->prepare("SELECT category FROM wmscategory WHERE category_id = ?");
     $cat_query->bind_param("i", $category_id);
@@ -26,7 +27,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $cat_query->fetch();
     $cat_query->close();
 
-    // 上传图片处理
+    // 上传图片
     $image_path = "";
     if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
         $upload_dir = 'uploads/';
@@ -43,7 +44,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         }
     }
 
-    // 检查 item_code 是否已存在
+    // 检查 item_code 是否重复
     $check_stmt = $conn->prepare("SELECT item_id FROM wmsitem WHERE item_code = ?");
     $check_stmt->bind_param("s", $item_code);
     $check_stmt->execute();
@@ -52,16 +53,16 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     if ($check_stmt->num_rows > 0) {
         $toastMessage = "item_exists";
     } else {
-        // 加入 session check_list
-        if (!isset($_SESSION['check_list'])) {
-            $_SESSION['check_list'] = [];
-        }
+        // 加入 session
+        $_SESSION['check_list'] = $_SESSION['check_list'] ?? [];
         $_SESSION['check_list'][] = [
             'item_name' => $item_name,
             'item_code' => $item_code,
             'quantity' => $quantity,
+            'unit_price' => $unit_price,
             'category_id' => $category_id,
-            'category' => $category
+            'category' => $category,
+            'image_path' => $image_path
         ];
 
         header("Location: check_list.php");
@@ -71,15 +72,14 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $check_stmt->close();
 }
 
-// 显示当前库存中的最近10项
-$items_sql = "SELECT item_name, quantity, item_code, note, image_path FROM wmsitem ORDER BY item_id DESC LIMIT 10";
+// 获取最近 10 项库存数据
+$items_sql = "SELECT item_name, quantity, item_code, note, image_path, unit_price FROM wmsitem ORDER BY item_id DESC LIMIT 10";
 $items_result = mysqli_query($conn, $items_sql);
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Order Stock</title>
   <style>
     body {
@@ -243,8 +243,8 @@ $items_result = mysqli_query($conn, $items_sql);
         <select name="category_id" required>
           <option value="" disabled selected>Select Category</option>
           <?php while($cat = mysqli_fetch_assoc($category_result)): ?>
-            <option value="<?php echo $cat['category_id']; ?>">
-              <?php echo htmlspecialchars($cat['category']); ?>
+            <option value="<?= $cat['category_id'] ?>">
+              <?= htmlspecialchars($cat['category']) ?>
             </option>
           <?php endwhile; ?>
         </select>
@@ -252,6 +252,7 @@ $items_result = mysqli_query($conn, $items_sql);
         <input type="text" name="item_name" placeholder="Item Name" required>
         <input type="number" name="quantity" placeholder="Quantity" min="1" required>
         <input type="text" name="item_code" placeholder="Item Code (Must be unique)" required>
+        <input type="number" name="unit_price" placeholder="Unit Price (e.g. 10.50)" min="0" step="0.01" required>
         <textarea name="note" placeholder="Additional Notes (optional)" rows="3"></textarea>
         <input type="file" name="image" accept="image/jpeg, image/png">
 
@@ -268,12 +269,13 @@ $items_result = mysqli_query($conn, $items_sql);
       <?php if (mysqli_num_rows($items_result) > 0): ?>
         <?php while($item = mysqli_fetch_assoc($items_result)): ?>
           <div class="product-item">
-            <img src="<?php echo htmlspecialchars($item['image_path'] ?: 'https://via.placeholder.com/70'); ?>" alt="Item">
+            <img src="<?= htmlspecialchars($item['image_path'] ?: 'https://via.placeholder.com/70') ?>" alt="Item">
             <div class="product-item-details">
-              <h4><?php echo htmlspecialchars($item['item_name']); ?> (<?php echo htmlspecialchars($item['item_code']); ?>)</h4>
-              <p>Quantity: <?php echo htmlspecialchars($item['quantity']); ?></p>
+              <h4><?= htmlspecialchars($item['item_name']) ?> (<?= htmlspecialchars($item['item_code']) ?>)</h4>
+              <p>Quantity: <?= htmlspecialchars($item['quantity']) ?></p>
+              <p>Unit Price: RM <?= number_format($item['unit_price'], 2) ?></p>
               <?php if (!empty($item['note'])): ?>
-                <p>Note: <?php echo htmlspecialchars($item['note']); ?></p>
+                <p>Note: <?= htmlspecialchars($item['note']) ?></p>
               <?php endif; ?>
             </div>
           </div>
