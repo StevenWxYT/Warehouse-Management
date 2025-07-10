@@ -56,18 +56,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // 如果按下 Add Item 按钮，则跳转至出库确认页
     if (isset($_POST['go_to_checklist'])) {
+        $_SESSION['check_list_out'] = $_SESSION['check_list_out'] ?? [];
         header("Location: check_list_out.php");
         exit();
     }
 }
 ?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <title>Auto Stock Out</title>
   <style>
-body {
+    body {
       font-family: 'Inter', sans-serif;
       margin: 0;
       display: flex;
@@ -225,7 +227,7 @@ body {
 
     .add-btn:hover {
       background-color: #8a76c4;
-    } 
+    }
   </style>
 </head>
 <body>
