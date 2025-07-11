@@ -14,7 +14,7 @@ $sales_sql = "
     DATE_FORMAT(s.sale_date, '%Y-%m') AS month,
     SUM(s.quantity) AS total_quantity,
     SUM(s.quantity * i.unit_price) AS total_sales
-  FROM wmssales s
+  FROM wmssales 
   INNER JOIN wmsitem i ON s.item_id = i.item_id
   WHERE YEAR(s.sale_date) = ?
   GROUP BY month

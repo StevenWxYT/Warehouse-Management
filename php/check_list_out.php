@@ -5,6 +5,7 @@ include_once('db.php');
 $items = $_SESSION['check_list_out'] ?? [];
 
 $message = '';
+$toastType = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $successCount = 0;
@@ -20,7 +21,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $date = date("Y-m-d");
         $time = date("H:i:s");
 
-        // 获取当前库存
         $stmt = $conn->prepare("SELECT quantity FROM wmsitem WHERE item_id = ?");
         $stmt->bind_param("i", $item_id);
         $stmt->execute();
@@ -29,20 +29,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->close();
 
         if ($current_qty >= $qty_to_deduct) {
-            // 扣库存
             $stmt = $conn->prepare("UPDATE wmsitem SET quantity = quantity - ? WHERE item_id = ?");
             $stmt->bind_param("ii", $qty_to_deduct, $item_id);
             $stmt->execute();
             $stmt->close();
 
-            // 写入出库表
             $stmt = $conn->prepare("INSERT INTO wmsstock_out (item_id, item_code, item_name, quantity, unit_price, image_path, date, time)
                                     VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
             $stmt->bind_param("issidsss", $item_id, $item_code, $item_name, $qty_to_deduct, $unit_price, $image_path, $date, $time);
             $stmt->execute();
             $stmt->close();
 
-            // 写入日志表
             $status = 'out';
             $stmt = $conn->prepare("INSERT INTO wmsitem_log (item_id, status, date, time) VALUES (?, ?, ?, ?)");
             $stmt->bind_param("isss", $item_id, $status, $date, $time);
@@ -57,12 +54,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
-    // 清除出库 session 清单
     unset($_SESSION['check_list_out']);
 
-    // 结果信息
-    $message = "✅ 成功出库 {$successCount} 项货物。" .
-               (count($failed) > 0 ? "❌ 以下出库失败：" . implode(', ', $failed) : "");
+    if (count($failed) === 0) {
+        $toastType = 'success';
+        $message = "✅ 成功出库 {$successCount} 项货物。";
+    } else {
+        $toastType = 'error';
+        $message = "✅ 成功出库 {$successCount} 项货物。❌ 以下出库失败：" . implode(', ', $failed);
+    }
 }
 ?>
 
@@ -75,51 +75,122 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <style>
     body {
       font-family: 'Inter', sans-serif;
-      background-color: #f5f6fa;
+      background: linear-gradient(to right, #f8f9fa, #e9ecef);
       margin: 0;
-      padding: 40px;
+      padding: 40px 20px;
     }
-    h2 { text-align: center; margin-bottom: 30px; }
+
+    h2 {
+      text-align: center;
+      color: #343a40;
+      margin-bottom: 30px;
+      font-size: 28px;
+    }
+
+    .card {
+      max-width: 1000px;
+      background: #ffffff;
+      margin: 0 auto;
+      border-radius: 12px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+      padding: 30px;
+    }
+
     table {
       width: 100%;
-      max-width: 1000px;
-      margin: 0 auto 30px auto;
       border-collapse: collapse;
-      background-color: #fff;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
     }
+
     th, td {
-      padding: 16px;
-      border: 1px solid #ddd;
+      padding: 14px 12px;
       text-align: center;
+      border-bottom: 1px solid #dee2e6;
     }
-    th { background-color: #eee; }
-    img { height: 60px; border-radius: 6px; }
+
+    th {
+      background-color: #f1f3f5;
+      color: #495057;
+      font-weight: 600;
+    }
+
+    td {
+      color: #333;
+    }
+
+    img {
+      height: 60px;
+      border-radius: 8px;
+    }
+
     .btn {
+      margin-top: 30px;
       display: block;
-      width: 240px;
-      margin: 0 auto;
-      padding: 14px;
-      background-color: #28a745;
-      color: white;
+      width: 100%;
+      max-width: 300px;
+      margin-left: auto;
+      margin-right: auto;
+      padding: 14px 20px;
       font-size: 16px;
+      background: linear-gradient(90deg, #28a745, #218838);
+      color: white;
       border: none;
       border-radius: 10px;
       cursor: pointer;
+      transition: 0.3s ease;
     }
-    .btn:hover { background-color: #218838; }
+
+    .btn:hover {
+      transform: scale(1.03);
+      background: linear-gradient(90deg, #218838, #1e7e34);
+    }
+
     .back {
-      margin-top: 20px;
       display: block;
       text-align: center;
-      color: #555;
+      margin-top: 20px;
+      color: #495057;
+      font-size: 15px;
       text-decoration: none;
+      transition: 0.2s;
     }
-    .message {
+
+    .back:hover {
+      color: #212529;
+      text-decoration: underline;
+    }
+
+    .alert {
       text-align: center;
-      margin-bottom: 20px;
-      font-weight: bold;
-      color: green;
+      color: #e03131;
+      font-weight: 600;
+      margin-top: 20px;
+    }
+
+    .toast-container {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 9999;
+    }
+
+    .toast {
+      background-color: #28a745;
+      color: white;
+      padding: 14px 20px;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      font-size: 14px;
+      animation: fadeInOut 3s ease forwards;
+    }
+
+    .toast.error {
+      background-color: #dc3545;
+    }
+
+    @keyframes fadeInOut {
+      0% { opacity: 0; transform: translateY(-10px); }
+      10%, 90% { opacity: 1; transform: translateY(0); }
+      100% { opacity: 0; transform: translateY(-10px); }
     }
   </style>
 </head>
@@ -127,38 +198,59 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 <h2>📋 Stock Out - Check List</h2>
 
-<?php if (!empty($message)): ?>
-  <p class="message"><?= htmlspecialchars($message) ?></p>
-  <a href="auto_stock_out.php" class="back">⬅ 返回扫码页面</a>
-<?php elseif (count($items) === 0): ?>
-  <p style="text-align:center; color: red;">⚠️ 没有货物可供检查。</p>
-<?php else: ?>
-  <form method="POST">
-    <table>
-      <thead>
-        <tr>
-          <th>Image</th>
-          <th>Item Code</th>
-          <th>Item Name</th>
-          <th>Quantity</th>
-          <th>Unit Price (RM)</th>
-        </tr>
-      </thead>
-      <tbody>
-        <?php foreach ($items as $item): ?>
+<div class="card">
+  <?php if (count($items) === 0 && !$message): ?>
+    <p class="alert">⚠️ 没有货物可供检查。</p>
+  <?php else: ?>
+    <form method="POST">
+      <table>
+        <thead>
           <tr>
-            <td><img src="<?= htmlspecialchars($item['image_path']) ?>" alt="Item Image"></td>
-            <td><?= htmlspecialchars($item['item_code']) ?></td>
-            <td><?= htmlspecialchars($item['item_name']) ?></td>
-            <td><?= $item['quantity'] ?></td>
-            <td><?= number_format($item['unit_price'], 2) ?></td>
+            <th>Image</th>
+            <th>Item Code</th>
+            <th>Item Name</th>
+            <th>Quantity</th>
+            <th>Unit Price (RM)</th>
           </tr>
-        <?php endforeach; ?>
-      </tbody>
-    </table>
-    <button type="submit" class="btn">✅ 确认并出库</button>
-  </form>
-<?php endif; ?>
+        </thead>
+        <tbody>
+          <?php foreach ($items as $item): ?>
+            <tr>
+              <td><img src="<?= htmlspecialchars($item['image_path']) ?>" alt="Item Image"></td>
+              <td><?= htmlspecialchars($item['item_code']) ?></td>
+              <td><?= htmlspecialchars($item['item_name']) ?></td>
+              <td><?= $item['quantity'] ?></td>
+              <td><?= number_format($item['unit_price'], 2) ?></td>
+            </tr>
+          <?php endforeach; ?>
+        </tbody>
+      </table>
+      <button type="submit" class="btn">✅ 确认并出库</button>
+    </form>
+  <?php endif; ?>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+  const toastType = "<?= $toastType ?>";
+  const message = <?= json_encode($message) ?>;
+
+  if (toastType && message) {
+    const container = document.getElementById("toastContainer");
+    const toast = document.createElement("div");
+    toast.className = "toast " + (toastType === 'error' ? 'error' : 'success');
+    toast.textContent = message;
+    container.appendChild(toast);
+
+    setTimeout(() => {
+      toast.remove();
+      if (toastType === 'success') {
+        window.location.href = "stock_manage.php";
+      }
+    }, 2500);
+  }
+</script>
 
 </body>
 </html>

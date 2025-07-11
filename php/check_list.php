@@ -25,10 +25,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $check_stmt->store_result();
 
             if ($check_stmt->num_rows == 0) {
+                // 插入新物品
                 $stmt = $conn->prepare("INSERT INTO wmsitem (item_name, quantity, item_code, note, image_path, date, time, category_id, unit_price)
                                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
                 $stmt->bind_param("sisssssdi", $item_name, $quantity, $item_code, $note, $image_path, $date, $time, $category_id, $unit_price);
                 $stmt->execute();
+
+                // 获取刚插入的 item_id
+                $new_item_id = $stmt->insert_id;
+
+                // 插入日志记录，status 为 in
+                $log_stmt = $conn->prepare("INSERT INTO wmsitem_log (item_id, status, date, time) VALUES (?, 'in', ?, ?)");
+                $log_stmt->bind_param("iss", $new_item_id, $date, $time);
+                for ($i = 0; $i < $quantity; $i++) {
+                    $log_stmt->execute();
+                }
+                $log_stmt->close();
+
                 $stmt->close();
             } else {
                 $all_success = false;

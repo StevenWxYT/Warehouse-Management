@@ -465,7 +465,7 @@ $isLoggedIn = isset($_SESSION['username']);
 
         const matchesSearch = title.includes(keyword) || code.includes(keyword);
         const matchesCategory = category === "all" || cardCategory === category;
-
+                            
         card.classList.toggle('hidden', !(matchesSearch && matchesCategory));
       });
     }
