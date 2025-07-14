@@ -1,14 +1,8 @@
 <?php
 include_once('db.php');
 
-// 获取选中的月份（默认当前月）
-$selected_month = isset($_GET['month']) ? $_GET['month'] : date('Y-m');
+$selected_year = isset($_GET['year']) ? $_GET['year'] : date('Y');
 
-// 获取月份列表
-$months_sql = "SELECT DISTINCT DATE_FORMAT(date, '%Y-%m') AS month FROM wmsstock_out ORDER BY month DESC";
-$months_result = mysqli_query($conn, $months_sql);
-
-// 查询该月出库数据
 $sales_sql = "
   SELECT 
     DATE_FORMAT(s.date, '%M %Y') AS month,
@@ -17,16 +11,16 @@ $sales_sql = "
     SUM(s.quantity * IFNULL(s.unit_price, 0)) AS total_sales
   FROM wmsstock_out s
   INNER JOIN wmsitem i ON s.item_id = i.item_id
-  WHERE DATE_FORMAT(s.date, '%Y-%m') = ?
-  GROUP BY s.item_id
-  ORDER BY s.item_id
+  WHERE YEAR(s.date) = ?
+  GROUP BY MONTH(s.date), s.item_id
+  ORDER BY MONTH(s.date), s.item_id
 ";
 
 $stmt = mysqli_prepare($conn, $sales_sql);
 if (!$stmt) {
     die("SQL prepare error: " . mysqli_error($conn));
 }
-mysqli_stmt_bind_param($stmt, "s", $selected_month);
+mysqli_stmt_bind_param($stmt, "i", $selected_year);
 mysqli_stmt_execute($stmt);
 $sales_result = mysqli_stmt_get_result($stmt);
 if (!$sales_result) {
@@ -38,8 +32,7 @@ if (!$sales_result) {
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Stock Out Report</title>
+  <title>Print Stock Out Report</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
   <style>
     * {
@@ -70,33 +63,6 @@ if (!$sales_result) {
       color: #2c3e50;
       margin-bottom: 35px;
       font-weight: 700;
-    }
-
-    .year-select {
-      display: flex;
-      justify-content: center;
-      margin-bottom: 30px;
-    }
-
-    .year-select label {
-      font-size: 16px;
-      margin-right: 10px;
-      align-self: center;
-      color: #333;
-    }
-
-    select {
-      padding: 10px 20px;
-      font-size: 16px;
-      border-radius: 12px;
-      border: 1px solid #ccc;
-      background: #f9f9f9;
-      transition: all 0.3s ease;
-    }
-
-    select:hover {
-      border-color: #3498db;
-      box-shadow: 0 3px 10px rgba(52, 152, 219, 0.2);
     }
 
     table {
@@ -139,36 +105,7 @@ if (!$sales_result) {
       font-weight: 500;
     }
 
-    .back-button {
-      text-align: center;
-      margin-top: 30px;
-    }
-
-    .back-button button {
-      padding: 12px 30px;
-      font-size: 16px;
-      color: white;
-      background: #8a76c4;
-      border-radius: 30px;
-      border: none;
-      font-weight: 600;
-      cursor: pointer;
-      box-shadow: 0 4px 15px rgba(138, 118, 196, 0.3);
-      transition: transform 0.2s ease, box-shadow 0.3s ease;
-    }
-
-    .back-button button:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 20px rgba(138, 118, 196, 0.4);
-    }
-
     @media print {
-      .year-select,
-      .back-button,
-      h2 {
-        display: none;
-      }
-
       body {
         background: white !important;
         padding: 0 !important;
@@ -190,24 +127,15 @@ if (!$sales_result) {
       }
     }
   </style>
+  <script>
+    window.onload = function () {
+      window.print();
+    }
+  </script>
 </head>
 <body>
   <div class="report-container">
-    <h2>Monthly Stock Out Report</h2>
-
-    <div class="year-select">
-      <form method="get">
-        <label for="month">Select Month:</label>
-        <select name="month" id="month" onchange="this.form.submit()">
-          <?php while ($month_row = mysqli_fetch_assoc($months_result)): ?>
-            <option value="<?= $month_row['month'] ?>" <?= $month_row['month'] == $selected_month ? 'selected' : '' ?>>
-              <?= date('F Y', strtotime($month_row['month'] . '-01')) ?>
-            </option>
-          <?php endwhile; ?>
-        </select>
-      </form>
-    </div>
-
+    <h2>Monthly Stock Out Report (<?= $selected_year ?>)</h2>
     <table>
       <thead>
         <tr>
@@ -228,15 +156,6 @@ if (!$sales_result) {
         <?php endwhile; ?>
       </tbody>
     </table>
-
-    <div class="back-button">
-      <form method="get" action="excel.php" style="margin-bottom: 10px;">
-        <input type="hidden" name="month" value="<?= $selected_month ?>">
-        <button>Export to Excel</button>
-      </form>
-      <button onclick="window.open('pdf.php?month=<?= $selected_month ?>', '_blank')">Export to PDF</button><br><br>
-      <button onclick="location.href='stock_manage.php'">Go back</button>
-    </div>
   </div>
 </body>
 </html>

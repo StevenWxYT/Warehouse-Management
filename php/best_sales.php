@@ -4,12 +4,20 @@ include_once('db.php');
 // 获取选中的月份（默认当前月）
 $selected_month = isset($_GET['month']) ? $_GET['month'] : date('Y-m');
 
-// 查询该月 Top 10 销售数据
+// 获取月份选项（存在出库数据的月份）
+$month_sql = "SELECT DISTINCT DATE_FORMAT(date, '%Y-%m') AS month FROM wmsstock_out ORDER BY month DESC";
+$month_result = mysqli_query($conn, $month_sql);
+
+// 查询该月 Top 10 出库数据（按数量排序）
 $sql = "
-  SELECT item_id, SUM(quantity) as total_sold
-  FROM wmssales
-  WHERE DATE_FORMAT(sale_date, '%Y-%m') = ?
-  GROUP BY item_id
+  SELECT 
+    i.item_name, 
+    i.unit_price,
+    SUM(s.quantity) as total_sold
+  FROM wmsstock_out s
+  INNER JOIN wmsitem i ON s.item_id = i.item_id
+  WHERE DATE_FORMAT(s.date, '%Y-%m') = ?
+  GROUP BY s.item_id
   ORDER BY total_sold DESC
   LIMIT 10
 ";
@@ -71,7 +79,7 @@ $result = $stmt->get_result();
       margin-bottom: 25px;
     }
 
-    input[type="month"] {
+    select {
       padding: 10px 16px;
       border-radius: 8px;
       font-size: 16px;
@@ -79,7 +87,7 @@ $result = $stmt->get_result();
       transition: box-shadow 0.3s ease;
     }
 
-    input[type="month"]:hover {
+    select:hover {
       box-shadow: 0 0 8px rgba(161, 140, 209, 0.5);
     }
 
@@ -96,7 +104,7 @@ $result = $stmt->get_result();
       border-radius: 12px;
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
       display: grid;
-      grid-template-columns: 120px 1fr;
+      grid-template-columns: 150px 1fr;
       row-gap: 10px;
       column-gap: 20px;
       align-items: center;
@@ -116,28 +124,32 @@ $result = $stmt->get_result();
       color: #555;
     }
 
-    .back-button {
-      display: inline-flex;
-      align-items: center;
+    .buttons {
+      display: flex;
       justify-content: center;
-      gap: 10px;
-      margin: 30px auto 0;
-      text-align: center;
-      background: linear-gradient(135deg, #6c63ff, #a18cd1);
+      flex-wrap: wrap;
+      gap: 15px;
+      margin-top: 40px;
+    }
+
+    .buttons button, .buttons a {
+      background: linear-gradient(135deg, #8a76c4, #a18cd1);
+      border: none;
+      padding: 12px 24px;
+      border-radius: 10px;
       color: white;
-      padding: 14px 24px;
-      border-radius: 12px;
-      text-decoration: none;
       font-weight: 600;
-      font-size: 16px;
-      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+      cursor: pointer;
+      text-decoration: none;
+      font-size: 15px;
+      box-shadow: 0 6px 14px rgba(0, 0, 0, 0.1);
       transition: all 0.3s ease;
     }
 
-    .back-button:hover {
-      background: linear-gradient(135deg, #574fd6, #8e7be5);
+    .buttons button:hover, .buttons a:hover {
+      background: linear-gradient(135deg, #715abf, #9479d1);
       transform: scale(1.05);
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+      box-shadow: 0 8px 22px rgba(0, 0, 0, 0.15);
     }
 
     @media (max-width: 600px) {
@@ -156,17 +168,28 @@ $result = $stmt->get_result();
       .sale-item label {
         margin-top: 8px;
       }
+
+      .buttons {
+        flex-direction: column;
+        align-items: center;
+      }
     }
   </style>
 </head>
 <body>
   <div class="card">
-    <h1>Top 10 Best Sales Stock</h1>
+    <h1>Top 10 Best Stock Out</h1>
 
     <div class="month-select">
       <form method="GET">
         <label for="month">Choose month:</label>
-        <input type="month" id="month" name="month" value="<?= $selected_month ?>" onchange="this.form.submit()" />
+        <select name="month" id="month" onchange="this.form.submit()">
+          <?php while ($row = mysqli_fetch_assoc($month_result)): ?>
+            <option value="<?= $row['month'] ?>" <?= $row['month'] === $selected_month ? 'selected' : '' ?>>
+              <?= date("F Y", strtotime($row['month'])) ?>
+            </option>
+          <?php endwhile; ?>
+        </select>
       </form>
     </div>
 
@@ -176,25 +199,27 @@ $result = $stmt->get_result();
       while ($row = $result->fetch_assoc()):
       ?>
         <div class="sale-item">
-          <label>Rank:</label>
-          <input type="text" value="<?= $rank ?>" readonly>
-
           <label>Item Name:</label>
           <input type="text" value="<?= htmlspecialchars($row['item_name']) ?>" readonly>
 
-          <label>Quantity Sold:</label>
+          <label>Total Quantity:</label>
           <input type="text" value="<?= $row['total_sold'] ?>" readonly>
+
+          <label>Unit Price (RM):</label>
+          <input type="text" value="<?= number_format($row['unit_price'], 2) ?>" readonly>
         </div>
       <?php $rank++; endwhile; ?>
 
       <?php if ($rank === 1): ?>
-        <p>No best sales found for this month.</p>
+        <p>No stock out data found for this month.</p>
       <?php endif; ?>
     </div>
 
-    <a href="stock_manage.php" class="back-button">
-      <i data-lucide="arrow-left"></i> Back to Stock Manage
-    </a>
+    <div class="buttons">
+      <a href="top10_excel.php?month=<?= $selected_month ?>">Export to Excel</a>
+      <a href="top10_pdf.php?month=<?= $selected_month ?>" target="_blank">Export to PDF</a>
+      <a href="stock_manage.php">Back to Stock Manage</a>
+    </div>
   </div>
 
   <script>
