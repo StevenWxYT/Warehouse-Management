@@ -54,7 +54,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     body {
       margin: 0;
       font-family: Arial, sans-serif;
-      background: linear-gradient(120deg, #a1c4fd, #c2e9fb, #d4fc79, #96e6a1);
+      background: linear-gradient(120deg, #fdfbfb, #ebedee, #e0d9f5, #e6f0ff);
       background-size: 400% 400%;
       animation: gradientFlow 18s ease infinite;
       height: 100vh;
@@ -101,15 +101,14 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     }
 
     .login-container input:focus {
-      border-color: #4CAF50;
-      box-shadow: 0 0 10px rgba(76, 175, 80, 0.5);
+      border-color: #8a76c4;
       outline: none;
     }
 
     .login-container button {
       width: 100%;
       padding: 12px;
-      background: linear-gradient(135deg, #6fcf97, #56cc9d);
+      background: linear-gradient(135deg, #8a76c4);
       color: white;
       border: none;
       border-radius: 8px;
@@ -119,7 +118,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     }
 
     .login-container button:hover {
-      background: linear-gradient(135deg, #56cc9d, #45a077);
+      background: #7b68b4;
     }
 
     .message {
@@ -146,6 +145,26 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
       padding: 10px;
       border-radius: 6px;
     }
+
+    .register-link {
+      margin-top: 15px;
+    }
+
+    .register-link button {
+      width: 100%;
+      padding: 10px;
+      background: #8a76c4;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: background 0.3s ease;
+    }
+
+    .register-link button:hover {
+      background: #8a76c4;
+    }
   </style>
 </head>
 <body>
@@ -165,6 +184,12 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
       <input type="password" name="password" placeholder="Password" required>
       <button type="submit">Login</button>
     </form>
+
+    <div class="register-link">
+      <form method="get" action="register.php">
+        <button type="submit">Go to Register</button>
+      </form>
+    </div>
 
     <?php if (isset($_SESSION['role'])) : ?>
       <div class="role-info">

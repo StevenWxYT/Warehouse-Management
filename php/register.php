@@ -72,7 +72,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     body {
       margin: 0;
       font-family: Arial, sans-serif;
-      background: linear-gradient(120deg, #fbc2eb, #a6c1ee);
+      background: linear-gradient(120deg, #fdfbfb, #ebedee, #e0d9f5, #e6f0ff);
       background-size: 400% 400%;
       animation: gradientFlow 18s ease infinite;
       height: 100vh;
@@ -127,7 +127,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     .register-container button {
       width: 100%;
       padding: 12px;
-      background: linear-gradient(135deg, #ff758c, #ff7eb3);
+      background: linear-gradient(135deg, #8a76c4);
       color: white;
       border: none;
       border-radius: 8px;
@@ -137,7 +137,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     }
 
     .register-container button:hover {
-      background: linear-gradient(135deg, #ff7eb3, #e84393);
+      background: linear-gradient(135deg, #8a76c4);
     }
 
     .message {
@@ -170,6 +170,26 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
       margin: 5px 0;
       gap: 8px;
     }
+
+    .login-link {
+      margin-top: 15px;
+    }
+
+    .login-link button {
+      width: 100%;
+      padding: 10px;
+      background: #8a76c4;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: background 0.3s ease;
+    }
+
+    .login-link button:hover {
+      background: #7b68b4;
+    }
   </style>
 </head>
 <body>
@@ -196,6 +216,12 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
       <button type="submit">Register</button>
     </form>
+
+    <div class="login-link">
+      <form method="get" action="login.php">
+        <button type="submit">Go to Login</button>
+      </form>
+    </div>
   </div>
 
 </body>

@@ -154,7 +154,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     <form action="add_category.php" method="POST">
       <input type="text" name="category" placeholder="Enter Category Name" required>
       <button type="submit">Add Category</button>
-      <button type="button" class="back-button" onclick="location.href='stock_order.php'">Go Back</button>
+      <button type="button" class="back-button" onclick="location.href='stock_manage.php'">Go Back</button>
     </form>
   </div>
 

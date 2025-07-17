@@ -376,6 +376,7 @@ $isLoggedIn = isset($_SESSION['username']);
       <button class="dropdown-toggle" onclick="toggleDropdown()" title="Tools">☰</button>
       <div class="dropdown-content" id="dropdownContent">
         <button onclick="window.location.href='add_category.php'"><i data-lucide="loader"></i><span>Add category</span></button>
+        <button onclick="window.location.href='staff.php'"><i data-lucide="shield-alert"></i><span>Staff</span></button>
       </div>
     </div>
     <button onclick="window.location.href='stock_quantity.php'">
