@@ -211,7 +211,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
       <div class="role-selection">
         <label><input type="radio" name="role" value="Admin" required> Admin</label>
-        <label><input type="radio" name="role" value="Salesman" required> Salesman</label>
+        <label><input type="radio" name="role" value="Salesman" required> Saleman</label>
       </div>
 
       <button type="submit">Register</button>

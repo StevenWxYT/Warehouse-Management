@@ -5,8 +5,13 @@ session_start();
 $items_sql = "SELECT * FROM `wmsitem`";
 $query = mysqli_query($conn, $items_sql);
 
+// 获取分类并创建映射 category_id => category 名称
 $category_sql = "SELECT * FROM `wmscategory`";
 $category_result = mysqli_query($conn, $category_sql);
+$category_map = [];
+while ($row = mysqli_fetch_assoc($category_result)) {
+    $category_map[$row['category_id']] = $row['category'];
+}
 
 $isLoggedIn = isset($_SESSION['username']);
 ?>
@@ -19,7 +24,7 @@ $isLoggedIn = isset($_SESSION['username']);
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
   <script src="https://unpkg.com/lucide@latest"></script>
   <style>
-    * {
+* {
       margin: 0;
       padding: 0;
       box-sizing: border-box;
@@ -63,6 +68,11 @@ $isLoggedIn = isset($_SESSION['username']);
       color: #333;
     }
 
+    .top-nav .nav-links {
+      display: flex;
+      align-items: center;
+    }
+
     .top-nav .nav-links a {
       margin-left: 20px;
       text-decoration: none;
@@ -73,6 +83,53 @@ $isLoggedIn = isset($_SESSION['username']);
 
     .top-nav .nav-links a:hover {
       color: #8a76c4;
+    }
+
+    .user-flat-box {
+      margin-left: 20px;
+      padding: 6px 14px;
+      background-color: #8a76c4;
+      color: white;
+      font-weight: 600;
+      border-radius: 6px;
+      cursor: pointer;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+      transition: background 0.3s ease;
+    }
+
+    .user-flat-box:hover {
+      background-color: #6a5dbd;
+    }
+
+    .user-card {
+      position: fixed;
+      top: 70px;
+      right: 20px;
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      width: 260px;
+      box-shadow: 0 6px 16px rgba(0,0,0,0.2);
+      z-index: 1000;
+      display: none;
+      animation: fadeSlideIn 0.3s ease forwards;
+    }
+
+    @keyframes fadeSlideIn {
+      from { opacity: 0; transform: translateY(-10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .user-card h4 {
+      margin: 0 0 10px;
+      font-size: 18px;
+      color: #333;
+    }
+
+    .user-card p {
+      margin: 4px 0;
+      font-size: 14px;
+      color: #666;
     }
 
     .sidebar {
@@ -163,7 +220,6 @@ $isLoggedIn = isset($_SESSION['username']);
     .controls {
       display: flex;
       flex-wrap: wrap;
-      justify-content: flex-start;
       align-items: center;
       gap: 15px;
       margin-bottom: 30px;
@@ -218,11 +274,18 @@ $isLoggedIn = isset($_SESSION['username']);
       transform: translateY(-6px);
     }
 
-    .stock-card img {
-      width: 50%;
-      height: 120px;
-      object-fit: cover;
-    }
+   .stock-card img {
+  width: 100%;
+  height: 160px;
+  object-fit: contain;
+  border-radius: 12px;
+  background-color: #fff;
+  border: 1px solid #ddd;
+  padding: 6px;
+  box-shadow: inset 0 0 6px rgba(0,0,0,0.05);
+  transition: transform 0.3s ease;
+}
+
 
     .stock-info {
       padding: 15px 20px;
@@ -304,219 +367,230 @@ $isLoggedIn = isset($_SESSION['username']);
       10%, 90% { opacity: 1; transform: translateY(0); }
       100% { opacity: 0; transform: translateY(-10px); }
     }
+    .image-modal {
+  display: none;
+  position: fixed;
+  z-index: 99999;
+  padding-top: 80px;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  background-color: rgba(0,0,0,0.85);
+}
 
-    .user-profile {
-      position: fixed;
-      top: 20px;
+.image-modal .modal-content {
+  margin: auto;
+  display: block;
+  max-width: 90%;
+  max-height: 80vh;
+  border-radius: 12px;
+  box-shadow: 0 0 12px #000;
+}
+
+.image-modal .close {
+  position: absolute;
+  top: 30px;
+  right: 40px;
+  color: white;
+  font-size: 40px;
+  font-weight: bold;
+  cursor: pointer;
+  z-index: 100000;
+}
+
+    .auth-buttons {
+      position: absolute;
+      bottom: 20px;
+      left: 20px;
       right: 20px;
-      z-index: 1000;
-      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
     }
 
-    .avatar-text {
-      width: 44px;
-      height: 44px;
-      border-radius: 50%;
-      background-color: #8a76c4;
-      color: white;
+    .auth-buttons button {
       display: flex;
       align-items: center;
-      justify-content: center;
-      font-weight: bold;
-      font-size: 18px;
-      border: 2px solid white;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-    }
-
-    .user-card {
-      position: fixed;
-      top: 70px;
-      right: 20px;
-      background: white;
+      gap: 12px;
+      background: linear-gradient(135deg, #e0d9f5, #e6f0ff);
+      border: none;
+      cursor: pointer;
+      font-size: 15px;
+      padding: 12px 16px;
       border-radius: 12px;
-      padding: 20px;
-      width: 260px;
-      box-shadow: 0 6px 16px rgba(0,0,0,0.2);
-      z-index: 1000;
-      display: none;
-      animation: fadeSlideIn 0.3s ease forwards;
+      color: black;
+      font-weight: 600;
+      box-shadow: 0 6px 16px rgba(0,0,0,0.08);
+      transition: background 0.3s ease, transform 0.2s ease;
     }
 
-    @keyframes fadeSlideIn {
-      from { opacity: 0; transform: translateY(-10px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    .user-card h4 {
-      margin: 0 0 10px;
-      font-size: 18px;
-      color: #333;
-    }
-
-    .user-card p {
-      margin: 4px 0;
-      font-size: 14px;
-      color: #666;
+    .auth-buttons button:hover {
+      background: linear-gradient(135deg, #d6c6f7, #e0ebff);
+      transform: translateY(-2px);
     }
   </style>
 </head>
 <body>
-  <nav class="top-nav">
-    <div class="nav-title">📦 Warehouse System</div>
-    <div class="nav-links">
-      <a href="Sales_report.php">Dashboard</a>
-      <a href="best_sales.php">Best seller</a>
-    </div>
-  </nav>
-
-  <div class="toast-container" id="toastContainer"></div>
-
-<div class="sidebar" id="sidebar">
-    <div class="dropdown-section">
-      <button class="dropdown-toggle" onclick="toggleDropdown()" title="Tools">☰</button>
-      <div class="dropdown-content" id="dropdownContent">
-        <button onclick="window.location.href='add_category.php'"><i data-lucide="loader"></i><span>Add category</span></button>
-        <button onclick="window.location.href='staff.php'"><i data-lucide="shield-alert"></i><span>Staff</span></button>
-      </div>
-    </div>
-    <button onclick="window.location.href='stock_quantity.php'">
-      <i data-lucide="package"></i><span>View Stock Quantity</span>
-    </button>
-    <button onclick="window.location.href='order_history.php'">
-      <i data-lucide="history"></i><span>View Order History</span>
-    </button>
-    <button onclick="window.location.href='stock_order.php'">
-      <i data-lucide="shopping-cart"></i><span>Order New Stocks</span>
-    </button>
-    <button onclick="window.location.href='stock_out.php'">
-      <i data-lucide="shopping-cart"></i><span>Stock out</span>
-    </button>
+<nav class="top-nav">
+  <div class="nav-title">📦 Warehouse System</div>
+  <div class="nav-links">
+    <a href="Sales_report.php">Dashboard</a>
+    <a href="best_sales.php">Best seller</a>
     <?php if ($isLoggedIn): ?>
-      <div class="auth-buttons">
-        <button onclick="window.location.href='logout.php'">
-          <i data-lucide="log-out"></i><span>Logout</span>
-        </button>
-      </div>
-    <?php else: ?>
-      <div class="auth-buttons">
-        <button onclick="window.location.href='login.php'">
-          <i data-lucide="log-in"></i><span>Login</span>
-        </button>
-        <button onclick="window.location.href='register.php'">
-          <i data-lucide="user-plus"></i><span>Register</span>
-        </button>
+      <div class="user-flat-box" onclick="toggleUserCard()">
+        <?= htmlspecialchars($_SESSION['username']) ?>
       </div>
     <?php endif; ?>
   </div>
+</nav>
 
-  <?php if ($isLoggedIn): ?>
-    <div class="user-profile" onclick="toggleUserCard()">
-      <div class="avatar-text">U</div>
-    </div>
-    <div class="user-card" id="userCard">
-      <h4><?= htmlspecialchars($_SESSION['username']) ?></h4>
-      <p>Email: <?= htmlspecialchars($_SESSION['email']) ?></p>
-    </div>
-  <?php endif; ?>
+<?php if ($isLoggedIn): ?>
+  <div class="user-card" id="userCard">
+    <h4><?= htmlspecialchars($_SESSION['username']) ?></h4>
+    <p>Email: <?= htmlspecialchars($_SESSION['email']) ?></p>
+  </div>
+<?php endif; ?>
 
-  <div class="container">
-    <div class="stock-container">
-      <h2>Manage Stock</h2>
-      <div class="controls">
-        <button class="add-button" onclick="location.href='stock_order.php'">Order</button>
-        <select id="categoryFilter">
-          <option value="all">All Categories</option>
-          <?php while ($row = mysqli_fetch_assoc($category_result)): ?>
-            <option value="<?= $row['category'] ?>"><?= $row['category'] ?></option>
-          <?php endwhile; ?>
-        </select>
-        <input type="text" id="searchInput" placeholder="Search by name or code...">
-      </div>
+<div class="toast-container" id="toastContainer"></div>
 
-      <div class="stock-grid" id="stockGrid">
-        <?php while ($item = mysqli_fetch_assoc($query)): ?>
-          <div class="stock-card" data-category="<?= $item['category_id'] ?>">
-            <img src="<?= $item['image_path'] ?>" alt="<?= $item['item_name'] ?>">
-            <div class="stock-info">
-              <h3><?= $item['item_name'] ?></h3>
-              <p>Code: <?= $item['item_code'] ?></p>
-              <p>Qty: <?= $item['quantity'] ?></p>
-              <p>Category: <?= $item['category_id'] ?></p>
-            </div>
-          </div>
-        <?php endwhile; ?>
-      </div>
+<div class="sidebar" id="sidebar">
+  <div class="dropdown-section">
+    <button class="dropdown-toggle" onclick="toggleDropdown()" title="Tools">☰</button>
+    <div class="dropdown-content" id="dropdownContent">
+      <button onclick="window.location.href='add_category.php'"><i data-lucide="loader"></i><span>Add category</span></button>
+      <button onclick="window.location.href='staff.php'"><i data-lucide="shield-alert"></i><span>Staff</span></button>
     </div>
   </div>
+  <button onclick="window.location.href='stock_quantity.php'"><i data-lucide="package"></i><span>View Stock Quantity</span></button>
+  <button onclick="window.location.href='order_history.php'"><i data-lucide="history"></i><span>View Order History</span></button>
+  <button onclick="window.location.href='stock_order.php'"><i data-lucide="shopping-cart"></i><span>Order New Stocks</span></button>
+  <button onclick="window.location.href='stock_out.php'"><i data-lucide="shopping-cart"></i><span>Stock out</span></button>
 
-  <script>
-    // JS 保持不变
-    const searchInput = document.getElementById('searchInput');
-    const categoryFilter = document.getElementById('categoryFilter');
+  <!-- 登录/注册 或 登出按钮 -->
+  <div class="auth-buttons">
+    <?php if ($isLoggedIn): ?>
+      <button onclick="window.location.href='logout.php'"><i data-lucide="log-out"></i><span>Logout</span></button>
+    <?php else: ?>
+      <button onclick="window.location.href='login.php'"><i data-lucide="log-in"></i><span>Login</span></button>
+      <button onclick="window.location.href='register.php'"><i data-lucide="user-plus"></i><span>Register</span></button>
+    <?php endif; ?>
+  </div>
+</div>
 
-    function filterStock() {
-      const keyword = searchInput.value.toLowerCase();
-      const category = categoryFilter.value;
-      const cards = document.querySelectorAll('.stock-card');
+<div class="container">
+  <div class="stock-container">
+    <h2>Manage Stock</h2>
+    <div class="controls">
+      <button class="add-button" onclick="location.href='stock_order.php'">Order</button>
+      <select id="categoryFilter">
+        <option value="all">All Categories</option>
+        <?php foreach ($category_map as $catName): ?>
+          <option value="<?= htmlspecialchars($catName) ?>"><?= htmlspecialchars($catName) ?></option>
+        <?php endforeach; ?>
+      </select>
+      <input type="text" id="searchInput" placeholder="Search by name or code...">
+    </div>
 
-      cards.forEach(card => {
-        const title = card.querySelector('h3').textContent.toLowerCase();
-        const code = card.querySelector('p').textContent.toLowerCase();
-        const cardCategory = card.dataset.category;
+    <div class="stock-grid" id="stockGrid">
+      <?php while ($item = mysqli_fetch_assoc($query)): ?>
+        <?php $categoryName = $category_map[$item['category_id']] ?? 'Unknown'; ?>
+        <div class="stock-card" data-category="<?= htmlspecialchars($categoryName) ?>">
+          <img src="<?= htmlspecialchars($item['image_path']) ?>" alt="<?= htmlspecialchars($item['item_name']) ?>">
+          <div class="stock-info">
+            <h3><?= htmlspecialchars($item['item_name']) ?></h3>
+            <p>Code: <?= htmlspecialchars($item['item_code']) ?></p>
+            <p>Qty: <?= htmlspecialchars($item['quantity']) ?></p>
+            <p>Category: <?= htmlspecialchars($categoryName) ?></p>
+          </div>
+        </div>
+      <?php endwhile; ?>
+    </div>
+  </div>
+</div>
 
-        const matchesSearch = title.includes(keyword) || code.includes(keyword);
-        const matchesCategory = category === "all" || cardCategory === category;
-                            
-        card.classList.toggle('hidden', !(matchesSearch && matchesCategory));
-      });
-    }
+<!-- 图片预览 Modal -->
+<div id="imageModal" class="image-modal">
+  <span class="close" onclick="closeModal()">&times;</span>
+  <img class="modal-content" id="modalImage">
+</div>
 
-    searchInput?.addEventListener('input', filterStock);
-    categoryFilter?.addEventListener('change', filterStock);
+<script>
+  const searchInput = document.getElementById('searchInput');
+  const categoryFilter = document.getElementById('categoryFilter');
 
-    function toggleDropdown() {
-      const dropdown = document.getElementById('dropdownContent');
-      dropdown.classList.toggle('show');
-    }
+  function filterStock() {
+    const keyword = searchInput.value.toLowerCase();
+    const category = categoryFilter.value;
+    const cards = document.querySelectorAll('.stock-card');
 
-    function showToast(message) {
-      const container = document.getElementById('toastContainer');
-      const toast = document.createElement('div');
-      toast.className = 'toast';
-      toast.innerText = message;
-      container.appendChild(toast);
-      setTimeout(() => toast.remove(), 5000);
-    }
-
-    function checkLowStock(threshold = 10) {
-      const cards = document.querySelectorAll('.stock-card');
-      let lowStockItems = [];
-
-      cards.forEach(card => {
-        const name = card.querySelector('h3').textContent;
-        const qtyText = Array.from(card.querySelectorAll('p')).find(p => p.textContent.includes('Qty'));
-        const qty = parseInt(qtyText.textContent.replace(/[^0-9]/g, ''));
-
-        if (qty < threshold) {
-          lowStockItems.push(`${name}（剩余 ${qty}）`);
-        }
-      });
-
-      if (lowStockItems.length > 0) {
-        showToast("⚠️ 以下库存不足：\n" + lowStockItems.join('\n'));
-      }
-    }
-
-    window.addEventListener('DOMContentLoaded', () => {
-      checkLowStock(10);
+    cards.forEach(card => {
+      const title = card.querySelector('h3').textContent.toLowerCase();
+      const code = card.querySelector('p').textContent.toLowerCase();
+      const cardCategory = card.dataset.category.toLowerCase();
+      const matchesSearch = title.includes(keyword) || code.includes(keyword);
+      const matchesCategory = category === "all" || cardCategory === category.toLowerCase();
+      card.style.display = (matchesSearch && matchesCategory) ? 'block' : 'none';
     });
+  }
 
-    lucide.createIcons();
+  searchInput.addEventListener('input', filterStock);
+  categoryFilter.addEventListener('change', filterStock);
 
-    function toggleUserCard() {
-      const card = document.getElementById('userCard');
-      card.style.display = card.style.display === 'block' ? 'none' : 'block';
+  function toggleUserCard() {
+    const card = document.getElementById('userCard');
+    card.style.display = card.style.display === 'block' ? 'none' : 'block';
+  }
+
+  function toggleDropdown() {
+    document.getElementById('dropdownContent').classList.toggle('show');
+  }
+
+  function showToast(message) {
+    const container = document.getElementById('toastContainer');
+    const toast = document.createElement('div');
+    toast.className = 'toast';
+    toast.innerText = message;
+    container.appendChild(toast);
+    setTimeout(() => toast.remove(), 5000);
+  }
+
+  function checkLowStock(threshold = 10) {
+    const cards = document.querySelectorAll('.stock-card');
+    let lowStockItems = [];
+    cards.forEach(card => {
+      const name = card.querySelector('h3').textContent;
+      const qtyText = Array.from(card.querySelectorAll('p')).find(p => p.textContent.includes('Qty'));
+      const qty = parseInt(qtyText.textContent.replace(/[^0-9]/g, ''));
+      if (qty < threshold) {
+        lowStockItems.push(`${name}（剩余 ${qty}）`);
+      }
+    });
+    if (lowStockItems.length > 0) {
+      showToast("⚠️ 以下库存不足：\n" + lowStockItems.join('\n'));
     }
-  </script>
+  }
+
+  // 图片点击预览
+  document.querySelectorAll('.stock-card img').forEach(img => {
+    img.addEventListener('click', function () {
+      const modal = document.getElementById("imageModal");
+      const modalImg = document.getElementById("modalImage");
+      modal.style.display = "block";
+      modalImg.src = this.src;
+    });
+  });
+
+  // 关闭预览
+  function closeModal() {
+    document.getElementById("imageModal").style.display = "none";
+  }
+
+  window.addEventListener('DOMContentLoaded', () => {
+    checkLowStock(10);
+    lucide.createIcons();
+  });
+</script>
 </body>
 </html>
