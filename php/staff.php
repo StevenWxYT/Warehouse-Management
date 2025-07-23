@@ -7,11 +7,8 @@ $today = date('Y-m-d');
 $time_now = date('H:i:s');
 $user = null;
 
-// 检查是否有登录用户
 if (isset($_SESSION['id'])) {
     $user_id = $_SESSION['id'];
-
-    // 从 wmsregister 表中获取用户信息
     $sql = "SELECT username, email, role FROM wmsregister WHERE id = ?";
     $stmt = $conn->prepare($sql);
     $stmt->bind_param('i', $user_id);
@@ -21,87 +18,108 @@ if (isset($_SESSION['id'])) {
 }
 ?>
 <!DOCTYPE html>
-<html lang="zh">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>员工信息</title>
+  <title>Staff Information</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
   <style>
+    * {
+      box-sizing: border-box;
+      font-family: 'Inter', sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+
     body {
-      font-family: 'Segoe UI', sans-serif;
-      background-color: #f0f2f5;
-      padding: 40px;
-      text-align: center;
+      background: linear-gradient(135deg, #fdfbfb, #ebedee);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      padding: 20px;
     }
 
     .card {
-      background: white;
-      padding: 30px 40px;
-      border-radius: 12px;
-      box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+      background: #ffffff;
+      padding: 40px;
+      border-radius: 16px;
+      box-shadow: 0 15px 30px rgba(0,0,0,0.1);
       max-width: 500px;
-      margin: 0 auto;
+      width: 100%;
+      text-align: center;
+      animation: fadeIn 0.6s ease-in-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
     }
 
     h2 {
+      font-size: 28px;
       color: #333;
-      margin-bottom: 20px;
+      margin-bottom: 30px;
     }
 
     .info {
       font-size: 16px;
-      margin: 10px 0;
       color: #555;
+      margin: 15px 0;
     }
 
     .label {
-      font-weight: bold;
+      font-weight: 600;
       color: #222;
-    }
-
-    .back-btn {
-      margin-top: 30px;
-    }
-
-    .back-btn a button {
-      padding: 10px 20px;
-      background-color: #3498db;
-      border: none;
-      color: white;
-      border-radius: 8px;
-      font-size: 15px;
-      cursor: pointer;
-      transition: background-color 0.3s ease;
-    }
-
-    .back-btn a button:hover {
-      background-color: #2980b9;
     }
 
     .not-logged-in {
       color: #e74c3c;
       font-size: 18px;
-      margin-top: 40px;
+      font-weight: 500;
+      margin-top: 20px;
+    }
+
+    .back-btn {
+      margin-top: 35px;
+    }
+
+    .back-btn button {
+      background-color: #8a76c4;
+      color: white;
+      padding: 12px 24px;
+      border: none;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background-color 0.3s ease, transform 0.2s ease;
+    }
+
+    .back-btn button:hover {
+      background-color: #715abf;
+      transform: translateY(-2px);
     }
   </style>
 </head>
 <body>
 
   <div class="card">
-    <h2>员工信息</h2>
+    <h2>Staff Information</h2>
 
     <?php if ($user): ?>
-      <div class="info"><span class="label">姓名：</span><?= htmlspecialchars($user['username']) ?></div>
-      <div class="info"><span class="label">电子邮箱：</span><?= htmlspecialchars($user['email']) ?></div>
-      <div class="info"><span class="label">角色：</span><?= htmlspecialchars($user['role']) ?></div>
-      <div class="info"><span class="label">当前日期：</span><?= $today ?></div>
-      <div class="info"><span class="label">当前时间：</span><?= $time_now ?></div>
+      <div class="info"><span class="label">Name:</span> <?= htmlspecialchars($user['username']) ?></div>
+      <div class="info"><span class="label">Email:</span> <?= htmlspecialchars($user['email']) ?></div>
+      <div class="info"><span class="label">Role:</span> <?= htmlspecialchars($user['role']) ?></div>
+      <div class="info"><span class="label">Current Date:</span> <?= $today ?></div>
+      <div class="info"><span class="label">Current Time:</span> <?= $time_now ?></div>
     <?php else: ?>
-      <div class="not-logged-in">⚠️ 当前没有登录的用户</div>
+      <div class="not-logged-in">⚠️ No user is currently logged in.</div>
     <?php endif; ?>
 
     <div class="back-btn">
       <a href="stock_manage.php">
-        <button>返回库存管理</button>
+        <button>Go Back</button>
       </a>
     </div>
   </div>

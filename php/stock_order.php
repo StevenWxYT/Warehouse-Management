@@ -9,12 +9,11 @@ $category_sql = "SELECT category_id, category FROM wmscategory";
 $category_result = mysqli_query($conn, $category_sql);
 
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
-    $item_name = $_POST['item_name'];
-    $quantity = $_POST['quantity'];
-    $item_code = $_POST['item_code'];
-    $unit_price = $_POST['unit_price']; // ⬅️ 获取单价
+    $item_name = $_POST['item_name'] ?? '';
+    $quantity = $_POST['quantity'] ?? 1;
+    $unit_price = $_POST['unit_price'] ?? 0;
     $note = $_POST['note'] ?? '';
-    $category_id = $_POST['category_id'];
+    $category_id = $_POST['category_id'] ?? 0;
     $date = date("Y-m-d");
     $time = date("H:i:s");
 
@@ -27,6 +26,35 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $cat_query->fetch();
     $cat_query->close();
 
+    // 检查是否手动输入了 item_code
+    $item_code = $_POST['item_code'] ?? '';
+
+    // 自动生成 13 位 item_code（如果没有手动输入）
+    if (empty($item_code)) {
+        do {
+            $item_code = str_pad(mt_rand(0, 9999999999999), 13, '0', STR_PAD_LEFT);
+            $check_stmt = $conn->prepare("SELECT item_id FROM wmsitem WHERE item_code = ?");
+            $check_stmt->bind_param("s", $item_code);
+            $check_stmt->execute();
+            $check_stmt->store_result();
+            $isDuplicate = $check_stmt->num_rows > 0;
+            $check_stmt->close();
+        } while ($isDuplicate);
+    } else {
+        // 检查手动输入的 item_code 是否已存在
+        $check_stmt = $conn->prepare("SELECT item_id FROM wmsitem WHERE item_code = ?");
+        $check_stmt->bind_param("s", $item_code);
+        $check_stmt->execute();
+        $check_stmt->store_result();
+
+        if ($check_stmt->num_rows > 0) {
+            $toastMessage = "item_exists";
+            $check_stmt->close();
+            goto skip_session_append;
+        }
+        $check_stmt->close();
+    }
+
     // 上传图片
     $image_path = "";
     if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
@@ -34,7 +62,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         if (!is_dir($upload_dir)) {
             mkdir($upload_dir, 0777, true);
         }
-
         $file_tmp = $_FILES['image']['tmp_name'];
         $file_name = basename($_FILES['image']['name']);
         $target_file = $upload_dir . time() . '_' . $file_name;
@@ -44,17 +71,19 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         }
     }
 
-    // 检查 item_code 是否重复
-    $check_stmt = $conn->prepare("SELECT item_id FROM wmsitem WHERE item_code = ?");
-    $check_stmt->bind_param("s", $item_code);
-    $check_stmt->execute();
-    $check_stmt->store_result();
+    // 合并相同 item_code 的货物
+    $_SESSION['check_list'] = $_SESSION['check_list'] ?? [];
+    $found = false;
+    foreach ($_SESSION['check_list'] as &$item) {
+        if ($item['item_code'] === $item_code) {
+            $item['quantity'] += $quantity;
+            $found = true;
+            break;
+        }
+    }
+    unset($item); // 清除引用
 
-    if ($check_stmt->num_rows > 0) {
-        $toastMessage = "item_exists";
-    } else {
-        // 加入 session
-        $_SESSION['check_list'] = $_SESSION['check_list'] ?? [];
+    if (!$found) {
         $_SESSION['check_list'][] = [
             'item_name' => $item_name,
             'item_code' => $item_code,
@@ -64,15 +93,14 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             'category' => $category,
             'image_path' => $image_path
         ];
-
-        header("Location: check_list.php");
-        exit();
     }
 
-    $check_stmt->close();
+    header("Location: check_list.php");
+    exit();
+
+    skip_session_append:;
 }
 
-// 获取最近 10 项库存数据
 $items_sql = "SELECT item_name, quantity, item_code, note, image_path, unit_price FROM wmsitem ORDER BY item_id DESC LIMIT 10";
 $items_result = mysqli_query($conn, $items_sql);
 ?>
@@ -93,13 +121,11 @@ $items_result = mysqli_query($conn, $items_sql);
       align-items: center;
       justify-content: center;
     }
-
     @keyframes gradientFlow {
       0% { background-position: 0% 50%; }
       50% { background-position: 100% 50%; }
       100% { background-position: 0% 50%; }
     }
-
     .container {
       display: flex;
       background: rgba(255, 255, 255, 0.95);
@@ -110,121 +136,46 @@ $items_result = mysqli_query($conn, $items_sql);
       max-width: 1000px;
       gap: 30px;
     }
-
-    .order-container, .product-list {
-      flex: 1;
-    }
-
-    h2 {
-      margin-bottom: 25px;
-      color: #333;
-    }
-
+    .order-container, .product-list { flex: 1; }
+    h2 { margin-bottom: 25px; color: #333; }
     input, textarea, select {
-      width: 100%;
-      padding: 12px;
-      margin-bottom: 18px;
-      border: 1px solid #ccc;
-      border-radius: 8px;
-      font-size: 15px;
-      transition: 0.3s ease;
+      width: 100%; padding: 12px; margin-bottom: 18px;
+      border: 1px solid #ccc; border-radius: 8px; font-size: 15px;
     }
-
     input:focus, textarea:focus, select:focus {
       border-color: #007bff;
       box-shadow: 0 0 12px rgba(0, 123, 255, 0.4);
       outline: none;
     }
-
-    input[type="file"] {
-      padding: 0;
-    }
-
     button {
-      width: 100%;
-      padding: 12px;
-      background: #8a76c4;
-      border: none;
-      color: white;
-      font-weight: bold;
-      font-size: 16px;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: 0.3s ease;
+      width: 100%; padding: 12px; background: #8a76c4; border: none;
+      color: white; font-weight: bold; font-size: 16px; border-radius: 8px; cursor: pointer;
     }
-
-    button:hover {
-      background: #6f5aa6;
-      transform: scale(1.05);
-      box-shadow: 0 0 15px rgba(138, 118, 196, 0.5);
-    }
-
+    button:hover { background: #6f5aa6; }
     .product-list {
-      background: #f8f8f8;
-      padding: 20px;
-      border-radius: 12px;
-      overflow-y: auto;
-      max-height: 500px;
+      background: #f8f8f8; padding: 20px; border-radius: 12px;
+      overflow-y: auto; max-height: 500px;
     }
-
     .product-item {
-      display: flex;
-      align-items: center;
-      background: white;
-      padding: 10px 15px;
-      border-radius: 10px;
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+      display: flex; align-items: center;
+      background: white; padding: 10px 15px;
+      border-radius: 10px; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
       margin-bottom: 12px;
     }
-
     .product-item img {
-      width: 70px;
-      height: 70px;
-      object-fit: cover;
-      border-radius: 10px;
-      margin-right: 15px;
-      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+      width: 70px; height: 70px; object-fit: cover;
+      border-radius: 10px; margin-right: 15px;
     }
-
-    .product-item-details h4 {
-      margin: 0 0 5px;
-      color: #333;
-    }
-
-    .product-item-details p {
-      margin: 0;
-      font-size: 14px;
-      color: #666;
-    }
-
-    .button-group {
-      display: flex;
-      gap: 15px;
-      margin-top: 15px;
-      flex-wrap: wrap;
-    }
-
-    .toast-container {
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      z-index: 9999;
-    }
-
+    .product-item-details h4 { margin: 0 0 5px; color: #333; }
+    .product-item-details p { margin: 0; font-size: 14px; color: #666; }
+    .button-group { display: flex; gap: 15px; margin-top: 15px; flex-wrap: wrap; }
+    .toast-container { position: fixed; top: 20px; right: 20px; z-index: 9999; }
     .toast {
-      background-color: #4CAF50;
-      color: white;
-      padding: 14px 20px;
-      border-radius: 8px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-      font-size: 14px;
-      animation: fadeInOut 5s forwards;
+      background-color: #4CAF50; color: white; padding: 14px 20px;
+      border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      font-size: 14px; animation: fadeInOut 5s forwards;
     }
-
-    .toast.error {
-      background-color: #ff4d4f;
-    }
-
+    .toast.error { background-color: #ff4d4f; }
     @keyframes fadeInOut {
       0% { opacity: 0; transform: translateY(-10px); }
       10%, 90% { opacity: 1; transform: translateY(0); }
@@ -239,7 +190,6 @@ $items_result = mysqli_query($conn, $items_sql);
     <div class="order-container">
       <h2>Order Stock</h2>
       <form action="stock_order.php" method="POST" enctype="multipart/form-data">
-
         <select name="category_id" required>
           <option value="" disabled selected>Select Category</option>
           <?php while($cat = mysqli_fetch_assoc($category_result)): ?>
@@ -251,8 +201,8 @@ $items_result = mysqli_query($conn, $items_sql);
 
         <input type="text" name="item_name" placeholder="Item Name" required>
         <input type="number" name="quantity" placeholder="Quantity" min="1" required>
-        <input type="text" name="item_code" placeholder="Item Code (Must be unique)" required>
-        <input type="number" name="unit_price" placeholder="Unit Price (e.g. 10.50)" min="0" step="0.01" required>
+        <input type="text" id="itemCodeInput" name="item_code" placeholder="Item Code (13 digits, optional)" pattern="\d{13}" maxlength="13" title="Enter exactly 13 digits">
+        <input type="number" name="unit_price" placeholder="Unit Price" min="0" step="0.01" required>
         <textarea name="note" placeholder="Additional Notes (optional)" rows="3"></textarea>
         <input type="file" name="image" accept="image/jpeg, image/png">
 
@@ -297,8 +247,24 @@ $items_result = mysqli_query($conn, $items_sql);
     }
 
     <?php if ($toastMessage === "item_exists"): ?>
-      showToast("⚠️ This item code already exists", true);
+      showToast("\u26a0 This item code already exists", true);
     <?php endif; ?>
+
+    // 扫描器快速自动提交逻辑
+    let scanTimer = null;
+    const itemCodeInput = document.querySelector('input[name="item_code"]');
+    const form = document.querySelector('form');
+
+    itemCodeInput.addEventListener('input', function () {
+      const value = itemCodeInput.value;
+      if (/^\d{13}$/.test(value)) {
+        const now = Date.now();
+        if (scanTimer && now - scanTimer < 500) {
+          form.submit();
+        }
+        scanTimer = now;
+      }
+    });
   </script>
 </body>
 </html>

@@ -1,5 +1,9 @@
-  <?php
+<?php
 include_once('db.php');
+
+// 获取所有分类（用于下拉菜单）
+$category_sql = "SELECT * FROM wmscategory ORDER BY category ASC";
+$category_result = mysqli_query($conn, $category_sql);
 
 // 处理更新与删除请求
 $response = null;
@@ -7,11 +11,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $item_code = $_POST['item_code'];
     if ($_POST['action'] === 'update') {
         $quantity = intval($_POST['quantity']);
-        $stmt = $conn->prepare("UPDATE wmsitem SET quantity = ? WHERE item_code = ?");
-        $stmt->bind_param("is", $quantity, $item_code);
-        $response = $stmt->execute()
-            ? ['success' => true, 'message' => '✅ Add stock successful!']
-            : ['success' => false, 'message' => '❌ Failed to update stock.'];
+
+        // 获取当前库存
+        $stmt_check = $conn->prepare("SELECT quantity FROM wmsitem WHERE item_code = ?");
+        $stmt_check->bind_param("s", $item_code);
+        $stmt_check->execute();
+        $stmt_check->bind_result($current_quantity);
+        $stmt_check->fetch();
+        $stmt_check->close();
+
+        if ($quantity > $current_quantity) {
+            $stmt = $conn->prepare("UPDATE wmsitem SET quantity = ? WHERE item_code = ?");
+            $stmt->bind_param("is", $quantity, $item_code);
+            $response = $stmt->execute()
+                ? ['success' => true, 'message' => '✅ Stock updated successfully!']
+                : ['success' => false, 'message' => '❌ Failed to update stock.'];
+        } else {
+            $response = ['success' => false, 'message' => '⚠️ Quantity must be greater than current stock.'];
+        }
     }
 
     if ($_POST['action'] === 'delete') {
@@ -22,7 +39,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             : ['success' => false, 'message' => '❌ Failed to delete item.'];
     }
 
-    // 如果是 AJAX 请求
     if (isset($_SERVER['HTTP_X_REQUESTED_WITH'])) {
         header('Content-Type: application/json');
         echo json_encode($response);
@@ -30,8 +46,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// 获取所有商品
-$items_sql = "SELECT * FROM wmsitem ORDER BY item_code ASC";
+// 查询库存低于 10 的物品
+$items_sql = "SELECT * FROM wmsitem WHERE quantity < 10 ORDER BY item_code ASC";
 $query = mysqli_query($conn, $items_sql);
 ?>
 
@@ -168,10 +184,6 @@ $query = mysqli_query($conn, $items_sql);
       margin-bottom: 15px;
     }
 
-    .item-left input[type="file"] {
-      font-size: 14px;
-    }
-
     .item-left img {
       width: 120px;
       height: 120px;
@@ -238,34 +250,40 @@ $query = mysqli_query($conn, $items_sql);
         <label for="global-category">Category:</label>
         <select id="global-category" class="category-select">
           <option value="">All</option>
-          <option value="Stationery">Stationery</option>
-          <option value="Electronics">Electronics</option>
-          <option value="Office Supply">Office Supply</option>
-          <option value="Others">Others</option>
+          <?php while ($cat = mysqli_fetch_assoc($category_result)): ?>
+            <option value="<?= htmlspecialchars($cat['category']) ?>"><?= htmlspecialchars($cat['category']) ?></option>
+          <?php endwhile; ?>
         </select>
         <button onclick="history.back()" class="go-back-btn">Go Back</button>
       </div>
     </div>
 
-    <!-- Item Grid -->
-    <div class="item-grid" id="itemGrid">
-      <?php while ($row = mysqli_fetch_assoc($query)): ?>
-      <div class="item-card" data-category="<?= $row['category_id'] ?>">
-        <div class="item-left">
-          <img src="<?= htmlspecialchars($row['image_path']) ?>" alt="<?= htmlspecialchars($row['item_name']) ?>">
-          <div class="item-info">
-            <label><?= htmlspecialchars($row['item_code']) ?></label>
-            <input type="number" value="<?= $row['quantity'] ?>" class="qty-input">
-          </div>
-        </div>
-        <div class="actions">
-          <button class="btn update-btn">Update</button>
-          <button class="btn delete-btn">Delete</button>
-        </div>
+ <div class="item-grid" id="itemGrid">
+  <?php while ($row = mysqli_fetch_assoc($query)): ?>
+  <div class="item-card" data-category="<?= htmlspecialchars($row['item_name']) ?>">
+    <div class="item-left">
+      <!-- item name 顶部显示 -->
+      <div style="font-weight: 600; font-size: 16px;"><?= htmlspecialchars($row['item_name']) ?></div>
+
+      <!-- 图片显示 -->
+      <img src="<?= htmlspecialchars($row['image_path']) ?>" alt="<?= htmlspecialchars($row['item_name']) ?>">
+
+      <!-- item code 与输入框 -->
+      <div class="item-info">
+        <div style="color: #666; font-size: 14px;"><?= htmlspecialchars($row['item_code']) ?></div>
+        <input type="number" value="<?= $row['quantity'] ?>" min="<?= $row['quantity'] ?>" class="qty-input">
       </div>
-      <?php endwhile; ?>
+    </div>
+
+    <div class="actions">
+      <button class="btn update-btn">Update</button>
+      <button class="btn delete-btn">Delete</button>
     </div>
   </div>
+  <?php endwhile; ?>
+</div>
+
+
 
   <div id="toast" style="position: fixed; top: 20px; right: 20px; z-index: 9999;"></div>
 
@@ -313,13 +331,15 @@ $query = mysqli_query($conn, $items_sql);
       }
     });
 
-    document.getElementById("searchInput").addEventListener("input", function() {
-      const keyword = this.value.toLowerCase();
-      document.querySelectorAll(".item-card").forEach(card => {
-        const code = card.querySelector("label").textContent.toLowerCase();
-        card.style.display = code.includes(keyword) ? "flex" : "none";
-      });
-    });
+document.getElementById("searchInput").addEventListener("input", function() {
+  const keyword = this.value.toLowerCase();
+  document.querySelectorAll(".item-card").forEach(card => {
+    const itemName = card.querySelector("div").textContent.toLowerCase();
+    const itemCode = card.querySelector(".item-info div").textContent.toLowerCase();
+    card.style.display = itemName.includes(keyword) || itemCode.includes(keyword) ? "flex" : "none";
+  });
+});
+
 
     document.getElementById("global-category").addEventListener("change", function() {
       const category = this.value;
