@@ -122,8 +122,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       border-radius: 8px;
     }
 
-    .btn {
-      margin-top: 30px;
+    .btn, .back-btn {
+      margin-top: 20px;
       display: block;
       width: 100%;
       max-width: 300px;
@@ -131,12 +131,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       margin-right: auto;
       padding: 14px 20px;
       font-size: 16px;
-      background: linear-gradient(90deg, #28a745, #218838);
       color: white;
       border: none;
       border-radius: 10px;
       cursor: pointer;
       transition: 0.3s ease;
+      text-align: center;
+      text-decoration: none;
+    }
+
+    .btn {
+      background: linear-gradient(90deg, #28a745, #218838);
     }
 
     .btn:hover {
@@ -144,19 +149,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       background: linear-gradient(90deg, #218838, #1e7e34);
     }
 
-    .back {
-      display: block;
-      text-align: center;
-      margin-top: 20px;
-      color: #495057;
-      font-size: 15px;
-      text-decoration: none;
-      transition: 0.2s;
+    .back-btn {
+      background: linear-gradient(90deg, #6c757d, #495057);
     }
 
-    .back:hover {
-      color: #212529;
-      text-decoration: underline;
+    .back-btn:hover {
+      background: linear-gradient(90deg, #5a6268, #343a40);
+      transform: scale(1.03);
     }
 
     .alert {
@@ -216,7 +215,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <tbody>
           <?php foreach ($items as $item): ?>
             <tr>
-              <td><img src="<?= htmlspecialchars($item['image_path']) ?>" alt="Item Image"></td>
+              <td><img src="<?= htmlspecialchars($item['image_path']) ?>" alt="Item Image" onerror="this.src='wms.jpg'"></td>
               <td><?= htmlspecialchars($item['item_code']) ?></td>
               <td><?= htmlspecialchars($item['item_name']) ?></td>
               <td><?= $item['quantity'] ?></td>
@@ -227,6 +226,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       </table>
       <button type="submit" class="btn">✅ 确认并出库</button>
     </form>
+    <a href="stock_manage.php" class="back-btn">⬅️ 返回 Stock Manage</a>
   <?php endif; ?>
 </div>
 

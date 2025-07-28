@@ -2,7 +2,7 @@
 include 'db.php';
 session_start();
 
-$message = ''; // 提示信息
+$message = '';
 
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $username = trim($_POST['username'] ?? '');
@@ -12,17 +12,19 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     if (empty($username) || empty($email) || empty($password)) {
         $message = "❌ 请输入用户名、邮箱和密码";
     } else {
-        $stmt = $conn->prepare("SELECT password, role, email FROM `wmsregister` WHERE username = ? AND email = ?");
+        // 加入 id 字段
+        $stmt = $conn->prepare("SELECT id, password, role, email FROM wmsregister WHERE username = ? AND email = ?");
         if ($stmt) {
             $stmt->bind_param('ss', $username, $email);
             $stmt->execute();
             $stmt->store_result();
 
             if ($stmt->num_rows === 1) {
-                $stmt->bind_result($hashedPassword, $role, $fetchedEmail);
+                $stmt->bind_result($id, $hashedPassword, $role, $fetchedEmail);
                 $stmt->fetch();
 
                 if (password_verify($password, $hashedPassword)) {
+                    $_SESSION['id'] = $id; // ✅ 关键 session
                     $_SESSION['username'] = $username;
                     $_SESSION['role'] = $role;
                     $_SESSION['email'] = $fetchedEmail;
@@ -43,7 +45,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     }
 }
 ?>
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -77,7 +78,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
       box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
       width: 320px;
       text-align: center;
-      z-index: 1;
       animation: floaty 6s ease-in-out infinite;
     }
 
@@ -163,7 +163,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     }
 
     .register-link button:hover {
-      background: #8a76c4;
+      background: #7b68b4;
     }
   </style>
 </head>
