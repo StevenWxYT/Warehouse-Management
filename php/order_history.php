@@ -187,7 +187,7 @@ $result = $stmt->get_result();
       <?php endwhile; ?>
     </select>
     <button type="submit">Search</button>
-    <button type="button" onclick="window.location.href='stock_manage.php'">Go Back</button>
+    <button type="button" onclick="window.location.href='index.php'">Go Back</button>
   </form>
 </div>
 

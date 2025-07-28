@@ -246,7 +246,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     setTimeout(() => {
       toast.remove();
       if (toastType === 'success') {
-        window.location.href = "stock_manage.php";
+        window.location.href = "index.php";
       }
     }, 2500);
   }

@@ -207,7 +207,7 @@ while ($row = $result->fetch_assoc()) {
     <div class="buttons">
       <a href="top10_excel.php?month=<?= $selected_month ?>">Export to Excel</a>
       <a href="top10_pdf.php?month=<?= $selected_month ?>" target="_blank">Export to PDF</a>
-      <a href="stock_manage.php">Back to Stock Manage</a>
+      <a href="index.php">Back to Stock Manage</a>
     </div>
   </div>
 </body>

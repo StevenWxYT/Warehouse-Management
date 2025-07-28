@@ -29,7 +29,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                     $_SESSION['role'] = $role;
                     $_SESSION['email'] = $fetchedEmail;
 
-                    header("Refresh: 2; URL=stock_manage.php");
+                    header("Refresh: 2; URL=index.php");
                     $message = "✅ 登录成功！正在跳转中...";
                 } else {
                     $message = "❌ 密码错误";

@@ -254,7 +254,8 @@ $query = mysqli_query($conn, $items_sql);
             <option value="<?= htmlspecialchars($cat['category']) ?>"><?= htmlspecialchars($cat['category']) ?></option>
           <?php endwhile; ?>
         </select>
-        <button onclick="history.back()" class="go-back-btn">Go Back</button>
+        <button onclick="window.location.href='index.php'" class="go-back-btn">Go Back</button>
+
       </div>
     </div>
 

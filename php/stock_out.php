@@ -246,7 +246,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <form method="POST" id="scanForm">
       <input type="text" name="item_code" placeholder="Scan item code..." autofocus autocomplete="off">
     </form>
-    <a href="stock_manage.php" class="back-btn">Go Back</a>
+    <a href="index.php" class="back-btn">Go Back</a>
   </div>
 
   <div class="right">

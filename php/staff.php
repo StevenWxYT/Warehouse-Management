@@ -118,7 +118,7 @@ if (isset($_SESSION['id'])) {
     <?php endif; ?>
 
     <div class="back-btn">
-      <a href="stock_manage.php">
+      <a href="index.php">
         <button>Go Back</button>
       </a>
     </div>

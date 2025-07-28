@@ -241,7 +241,7 @@ $chart_result = mysqli_query($conn, $chart_sql);
             <button onclick="window.open('pdf.php?month=<?= $selected_month ?>', '_blank')">Export to PDF</button>
           </td>
           <td style="padding: 10px;">
-            <button onclick="location.href='stock_manage.php'">Go back</button>
+            <button onclick="location.href='index.php'">Go back</button>
           </td>
         </tr>
       </table>

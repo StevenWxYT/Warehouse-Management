@@ -209,7 +209,7 @@ $items_result = mysqli_query($conn, $items_sql);
         <div class="button-group">
           <button type="button" onclick="location.href='add_category.php'">Add Category</button>
           <button type="submit">Add Item</button>
-          <button type="button" onclick="location.href='stock_manage.php'">Go back</button>
+          <button type="button" onclick="location.href='index.php'">Go back</button>
         </div>
       </form>
     </div>
