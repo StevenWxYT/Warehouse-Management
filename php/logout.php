@@ -9,6 +9,6 @@ session_unset();
 session_destroy();
 
 // 可选：设置登出提示（通过 URL 参数）
-header("Location: register.php?logout=success");
+header("Location: index.php?logout=success");
 exit();
 ?>

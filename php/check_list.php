@@ -37,9 +37,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // 插入日志记录，status 为 in
                 $log_stmt = $conn->prepare("INSERT INTO wmsitem_log (item_id, status, date, time) VALUES (?, 'in', ?, ?)");
                 $log_stmt->bind_param("iss", $new_item_id, $date, $time);
-                for ($i = 0; $i < $quantity; $i++) {
-                    $log_stmt->execute();
-                }
+                 $log_stmt->execute();
+                // for ($i = 0; $i < $quantity; $i++) {
+                   
+                // }
                 $log_stmt->close();
 
                 $stmt->close();

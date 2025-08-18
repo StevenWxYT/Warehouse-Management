@@ -1,5 +1,13 @@
 <?php
 include 'db.php'; // 连接数据库
+session_start();
+if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'Admin') {
+  echo "<script>
+        alert('You do not have permission to access this page!');
+        window.location.href = 'index.php';
+    </script>";
+    exit;
+}
 
 $message = ''; // 保存提示信息
 
@@ -211,7 +219,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
       <div class="role-selection">
         <label><input type="radio" name="role" value="Admin" required> Admin</label>
-        <label><input type="radio" name="role" value="Salesman" required> Saleman</label>
+        <label><input type="radio" name="role" value="Saleman" required> Saleman</label>
       </div>
 
       <button type="submit">Register</button>

@@ -2,6 +2,16 @@
 session_start();
 include_once('db.php');
 
+if (!isset($_SESSION['role']) || !in_array($_SESSION['role'], ['Admin', 'Saleman'])) {
+      echo "<script>
+        alert('Not an admin or salesperson, redirect to the homepage or show a no-permission message.');
+        window.location.href = 'index.php';
+    </script>";
+    header('Location: index.php');
+    exit;
+}
+
+
 $message = '';
 $toastType = '';
 

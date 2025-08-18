@@ -2,6 +2,10 @@
 include_once('db.php');
 session_start();
 
+if (isset($_GET['logout']) && $_GET['logout'] === 'success') {
+    echo "<script>alert('You have successfully logged out!');</script>";
+}
+
 $items_sql = "SELECT * FROM `wmsitem`";
 $query = mysqli_query($conn, $items_sql);
 
@@ -14,6 +18,7 @@ while ($row = mysqli_fetch_assoc($category_result)) {
 }
 
 $isLoggedIn = isset($_SESSION['username']);
+
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -437,7 +442,6 @@ $isLoggedIn = isset($_SESSION['username']);
   <div class="nav-title">📦 Warehouse System</div>
   <div class="nav-links">
     <a href="Sales_report.php">Dashboard</a>
-    <a href="best_sales.php">Best seller</a>
     <?php if ($isLoggedIn): ?>
       <div class="user-flat-box" onclick="toggleUserCard()">
         <?= htmlspecialchars($_SESSION['username']) ?>
@@ -445,6 +449,7 @@ $isLoggedIn = isset($_SESSION['username']);
     <?php endif; ?>
   </div>
 </nav>
+
 
 <?php if ($isLoggedIn): ?>
   <div class="user-card" id="userCard">
@@ -535,6 +540,8 @@ $isLoggedIn = isset($_SESSION['username']);
     });
   }
 
+  
+
   searchInput.addEventListener('input', filterStock);
   categoryFilter.addEventListener('change', filterStock);
 
@@ -547,30 +554,40 @@ $isLoggedIn = isset($_SESSION['username']);
     document.getElementById('dropdownContent').classList.toggle('show');
   }
 
-  function showToast(message) {
-    const container = document.getElementById('toastContainer');
-    const toast = document.createElement('div');
-    toast.className = 'toast';
-    toast.innerText = message;
-    container.appendChild(toast);
-    setTimeout(() => toast.remove(), 5000);
+function showToast(message, lowStockItems = []) {
+  const container = document.getElementById('toastContainer');
+  const toast = document.createElement('div');
+  toast.className = 'toast';
+  toast.innerText = message;
+
+  // 如果有低库存数据，就绑定点击事件
+  if (lowStockItems.length > 0) {
+    toast.style.cursor = 'pointer';
+    toast.addEventListener('click', () => {
+      sessionStorage.setItem('lowStockItems', JSON.stringify(lowStockItems));
+      window.location.href = 'stock_quantity.php';
+    });
   }
 
-  function checkLowStock(threshold = 10) {
-    const cards = document.querySelectorAll('.stock-card');
-    let lowStockItems = [];
-    cards.forEach(card => {
-      const name = card.querySelector('h3').textContent;
-      const qtyText = Array.from(card.querySelectorAll('p')).find(p => p.textContent.includes('Qty'));
-      const qty = parseInt(qtyText.textContent.replace(/[^0-9]/g, ''));
-      if (qty < threshold) {
-        lowStockItems.push(`${name}（剩余 ${qty}）`);
-      }
-    });
-    if (lowStockItems.length > 0) {
-      showToast("⚠️ 以下库存不足：\n" + lowStockItems.join('\n'));
+  container.appendChild(toast);
+  setTimeout(() => toast.remove(), 5000);
+}
+
+function checkLowStock(threshold = 10) {
+  const cards = document.querySelectorAll('.stock-card');
+  let lowStockItems = [];
+  cards.forEach(card => {
+    const name = card.querySelector('h3').textContent;
+    const qtyText = Array.from(card.querySelectorAll('p')).find(p => p.textContent.includes('Qty'));
+    const qty = parseInt(qtyText.textContent.replace(/[^0-9]/g, ''));
+    if (qty < threshold) {
+      lowStockItems.push(`${name}（剩余 ${qty}）`);
     }
+  });
+  if (lowStockItems.length > 0) {
+    showToast("⚠️ 以下库存不足：\n" + lowStockItems.join('\n'), lowStockItems);
   }
+}
 
   // 图片点击预览
   document.querySelectorAll('.stock-card img').forEach(img => {
@@ -591,6 +608,7 @@ $isLoggedIn = isset($_SESSION['username']);
     checkLowStock(10);
     lucide.createIcons();
   });
+
 </script>
 </body>
 </html>
