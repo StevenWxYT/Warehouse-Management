@@ -27,7 +27,8 @@ $isLoggedIn = isset($_SESSION['username']);
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Manage Stock</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
-  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+
   <style>
 * {
       margin: 0;
@@ -455,6 +456,7 @@ $isLoggedIn = isset($_SESSION['username']);
   <div class="user-card" id="userCard">
     <h4><?= htmlspecialchars($_SESSION['username']) ?></h4>
     <p>Email: <?= htmlspecialchars($_SESSION['email']) ?></p>
+    <p>Role: <?=  htmlspecialchars($_SESSION['role']) ?></p>
   </div>
 <?php endif; ?>
 

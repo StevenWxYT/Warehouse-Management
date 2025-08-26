@@ -4,20 +4,21 @@ session_start();
 
 if (!isset($_SESSION['role']) || strtolower(trim($_SESSION['role'])) !== 'admin') {
      echo "<script>
-        alert('You do not have permission to access this page!');
         window.location.href = 'index.php';
     </script>";
     exit;
 }
 
-
+// --- 获取选择的月份 ---
 $selected_month = isset($_GET['month']) ? $_GET['month'] : date('Y-m');
 $start_date = isset($_GET['start_date']) ? $_GET['start_date'] : $selected_month . '-01';
 $end_date = isset($_GET['end_date']) ? $_GET['end_date'] : date('Y-m-t', strtotime($selected_month . '-01'));
 
+// --- 月份下拉框数据 ---
 $month_sql = "SELECT DISTINCT DATE_FORMAT(date, '%Y-%m') AS month FROM wmsstock_out ORDER BY month DESC";
 $month_result = mysqli_query($conn, $month_sql);
 
+// --- Top 10 报表 ---
 $top_sql = "
   SELECT 
     i.item_name, 
@@ -43,6 +44,7 @@ while ($row = $top_result->fetch_assoc()) {
   $top_data[] = $row;
 }
 
+// --- 月度报表 ---
 $sales_sql = "
   SELECT 
     DATE_FORMAT(s.date, '%M %Y') AS month,
@@ -67,6 +69,7 @@ while ($row = $sales_result->fetch_assoc()) {
   $sales_total += $row['total_sales'];
 }
 
+// --- 图表数据（所有月份总览） ---
 $chart_sql = "
   SELECT 
     DATE_FORMAT(date, '%Y-%m') AS ym,
@@ -76,6 +79,11 @@ $chart_sql = "
   ORDER BY ym ASC
 ";
 $chart_result = mysqli_query($conn, $chart_sql);
+
+$chart_data = [];
+while ($r = mysqli_fetch_assoc($chart_result)) {
+  $chart_data[] = $r;
+}
 ?>
 
 <!DOCTYPE html>
@@ -97,7 +105,6 @@ $chart_result = mysqli_query($conn, $chart_sql);
     .section-title { margin-top: 40px; font-size: 20px; color: #555; border-bottom: 2px solid #ccc; padding-bottom: 8px; }
     .chart-container { display: flex; justify-content: space-around; flex-wrap: wrap; margin-top: 30px; }
     .chart-box { width: 45%; min-width: 300px; }
-    /* 让Pie Chart和Bar Chart一样大小 */
     .chart-box canvas {
       width: 100% !important;
       height: 400px !important;
@@ -111,10 +118,11 @@ $chart_result = mysqli_query($conn, $chart_sql);
 <div class="container">
   <h2>Combined Sales Report</h2>
 
+  <!-- 表格月份筛选 -->
   <form method="get">
     <label for="month">Select Month:</label>
     <select name="month" id="month" onchange="this.form.submit()">
-      <?php while ($m = mysqli_fetch_assoc($month_result)): ?>
+      <?php mysqli_data_seek($month_result, 0); while ($m = mysqli_fetch_assoc($month_result)): ?>
         <option value="<?= $m['month'] ?>" <?= $m['month'] === $selected_month ? 'selected' : '' ?>>
           <?= date('F Y', strtotime($m['month'])) ?>
         </option>
@@ -126,6 +134,17 @@ $chart_result = mysqli_query($conn, $chart_sql);
     <input type="date" name="end_date" value="<?= $end_date ?>">
     <button type="submit">Filter</button>
   </form>
+
+  <!-- 图表月份筛选 -->
+  <div style="text-align:center; margin-bottom:20px;">
+    <label for="chart_month">View Chart:</label>
+    <select id="chart_month" onchange="filterChart(this.value)">
+      <option value="all">All Months</option>
+      <?php foreach ($chart_data as $r): ?>
+        <option value="<?= $r['ym'] ?>"><?= $r['ym'] ?></option>
+      <?php endforeach; ?>
+    </select>
+  </div>
 
   <div class="chart-container">
     <div class="chart-box">
@@ -198,7 +217,7 @@ $chart_result = mysqli_query($conn, $chart_sql);
       <input type="hidden" name="end_date" value="<?= $end_date ?>">
       <button type="submit">Export Sales Report to Excel</button>
     </form>
-    <form action="sales_pdf.php" method="get" target="_blank">
+    <form action="pdf.php" method="get" target="_blank">
       <input type="hidden" name="start_date" value="<?= $start_date ?>">
       <input type="hidden" name="end_date" value="<?= $end_date ?>">
       <button type="submit" style="background:#e67e22">Export Sales Report to PDF</button>
@@ -211,6 +230,9 @@ $chart_result = mysqli_query($conn, $chart_sql);
 const monthlyCtx = document.getElementById('monthlyChart').getContext('2d');
 const pieCtx = document.getElementById('pieChart').getContext('2d');
 
+const allLabels = [<?php foreach ($chart_data as $r) echo '"' . $r['ym'] . '",'; ?>];
+const allData = [<?php foreach ($chart_data as $r) echo $r['total_sales'] . ','; ?>];
+
 const barColors = [
   '#8a76c4', '#f39c12', '#2ecc71', '#e74c3c', '#9b59b6',
   '#1abc9c', '#34495e', '#3498db', '#fd79a8', '#00cec9',
@@ -218,27 +240,17 @@ const barColors = [
   '#0984e3', '#d63031', '#e17055', '#00b894', '#636e72'
 ];
 
-const monthlyLabels = [<?php mysqli_data_seek($chart_result, 0); while ($r = mysqli_fetch_assoc($chart_result)) echo '"' . $r['ym'] . '",'; ?>];
-const monthlyData = [<?php mysqli_data_seek($chart_result, 0); while ($r = mysqli_fetch_assoc($chart_result)) echo $r['total_sales'] . ','; ?>];
-const monthlyColors = monthlyLabels.map((_, i) => barColors[i % barColors.length]);
-
-new Chart(monthlyCtx, {
+let monthlyChart = new Chart(monthlyCtx, {
   type: 'bar',
   data: {
-    labels: monthlyLabels,
+    labels: allLabels,
     datasets: [{
       label: 'Monthly Sales (RM)',
-      data: monthlyData,
-      backgroundColor: monthlyColors
+      data: allData,
+      backgroundColor: barColors
     }]
   },
-  options: {
-    responsive: true,
-    maintainAspectRatio: false,
-    scales: {
-      y: { beginAtZero: true }
-    }
-  }
+  options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } } }
 });
 
 new Chart(pieCtx, {
@@ -250,11 +262,21 @@ new Chart(pieCtx, {
       backgroundColor: ['#8a76c4','#f39c12','#2ecc71','#e74c3c','#9b59b6','#1abc9c','#34495e','#3498db','#fd79a8','#00cec9']
     }]
   },
-  options: {
-    responsive: true,
-    maintainAspectRatio: false
-  }
+  options: { responsive: true, maintainAspectRatio: false }
 });
+
+// 图表月份筛选
+function filterChart(month) {
+  if (month === "all") {
+    monthlyChart.data.labels = allLabels;
+    monthlyChart.data.datasets[0].data = allData;
+  } else {
+    let index = allLabels.indexOf(month);
+    monthlyChart.data.labels = [allLabels[index]];
+    monthlyChart.data.datasets[0].data = [allData[index]];
+  }
+  monthlyChart.update();
+}
 </script>
 </body>
 </html>

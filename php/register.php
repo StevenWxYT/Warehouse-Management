@@ -52,7 +52,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                     $insertStmt->bind_param("ssss", $username, $email, $hashedPassword, $role);
 
                     if ($insertStmt->execute()) {
-                        header("Refresh: 2; URL=login.php");
+                        header("Refresh: 2; URL=staff.php");
                         $message = "✅ Registration successful! You may now log in.";
                     } else {
                         $message = "❌ Registration failed: " . htmlspecialchars($insertStmt->error);

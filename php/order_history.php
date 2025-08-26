@@ -4,7 +4,6 @@ session_start();
 
 if (!isset($_SESSION['role']) || !in_array($_SESSION['role'], ['Admin', 'Saleman'])) {
     echo "<script>
-        alert('Not an admin or salesperson, redirecting to homepage.');
         window.location.href = 'index.php';
     </script>";
     exit;
@@ -29,13 +28,13 @@ $params = [];
 $types = "";
 
 if (!empty($search)) {
-    $where_clause .= " AND (item_code LIKE ? OR item_name LIKE ? OR date LIKE ? OR time LIKE ? OR status LIKE ?)";
+    $where_clause .= " AND (combined.item_code LIKE ? OR combined.item_name LIKE ? OR combined.date LIKE ? OR combined.time LIKE ? OR combined.status LIKE ?)";
     $search_param = "%$search%";
     $params = array_merge($params, [$search_param, $search_param, $search_param, $search_param, $search_param]);
     $types .= "sssss";
 }
 if (!empty($category_filter)) {
-    $where_clause .= " AND category_id = ?";
+    $where_clause .= " AND combined.category_id = ?";
     $params[] = $category_filter;
     $types .= "i";
 }
@@ -45,16 +44,15 @@ if (!empty($category_filter)) {
  */
 $count_sql = "
     SELECT COUNT(*) AS total FROM (
-        -- stock_in + restock（按时间和 status 分组）
-        SELECT i.item_code, i.item_name, i.unit_price, SUM(i.quantity) AS quantity,
+        -- stock_in 和 restock（不合并，直接显示）
+        SELECT i.item_code, i.item_name, i.unit_price, l.item_quantity,
                i.image_path, l.date, l.time, l.status, i.category_id
         FROM wmsitem_log l
         INNER JOIN wmsitem i ON l.item_id = i.item_id
-        GROUP BY i.item_code, l.date, l.time, l.status, i.category_id
 
         UNION ALL
 
-        -- stock_out 原样
+        -- stock_out
         SELECT s.item_code, s.item_name, s.unit_price, s.quantity,
                i.image_path, s.date, s.time, 'out' AS status, i.category_id
         FROM wmsstock_out s
@@ -73,16 +71,15 @@ $total_pages = ceil($total_records / $limit);
  */
 $data_sql = "
     SELECT * FROM (
-        -- stock_in + restock（合并数量）
-        SELECT i.item_code, i.item_name, i.unit_price, SUM(i.quantity) AS quantity,
+        -- stock_in 和 restock（不合并）
+        SELECT i.item_code, i.item_name, i.unit_price, l.item_quantity,
                i.image_path, l.date, l.time, l.status, i.category_id
         FROM wmsitem_log l
         INNER JOIN wmsitem i ON l.item_id = i.item_id
-        GROUP BY i.item_code, l.date, l.time, l.status, i.category_id
 
         UNION ALL
 
-        -- stock_out 原样
+        -- stock_out
         SELECT s.item_code, s.item_name, s.unit_price, s.quantity,
                i.image_path, s.date, s.time, 'out' AS status, i.category_id
         FROM wmsstock_out s
@@ -101,6 +98,7 @@ $stmt->bind_param($types, ...$params);
 $stmt->execute();
 $result = $stmt->get_result();
 ?>
+
 
 
 
@@ -168,6 +166,7 @@ $result = $stmt->get_result();
       }
       .in { background-color: #28a745; }
       .out { background-color: #dc3545; }
+      .restock {background-color: #3333ff;}
 
       .pagination {
         text-align: center;
@@ -223,6 +222,68 @@ $result = $stmt->get_result();
         font-size: 20px;
         cursor: pointer;
       }
+
+    .controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.controls input[type="text"],
+.controls select {
+  padding: 10px 14px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 14px;
+  transition: all 0.2s ease-in-out;
+  background: #fff;
+  min-width: 180px;
+}
+
+.controls input[type="text"]:focus,
+.controls select:focus {
+  border-color: #6a5acd;
+  box-shadow: 0 0 0 3px rgba(106, 90, 205, 0.2);
+  outline: none;
+}
+
+/* 搜索按钮 */
+.controls button[type="submit"] {
+  background: #8a76c4;
+  color: #fff;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: bold;
+  transition: all 0.2s ease-in-out;
+}
+
+.controls button[type="submit"]:hover {
+  background: #5848c2;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(106, 90, 205, 0.3);
+}
+
+/* Go Back 按钮 */
+.controls button[type="button"] {
+  background: #8a76c4;
+  color: #fff;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s ease-in-out;
+}
+
+.controls button[type="button"]:hover {
+  background: #5848c2;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
     </style>
   </head>
   <body>
@@ -260,7 +321,7 @@ $result = $stmt->get_result();
     <tbody>
       <?php while ($row = $result->fetch_assoc()): ?>
         <?php
-          $qty = intval($row['quantity']);
+          $qty = intval($row['item_quantity']);
           $unit_price = floatval($row['unit_price']);
           $total_price = $qty * $unit_price;
           $image_path = htmlspecialchars($row['image_path'] ?? 'wms.jpg');

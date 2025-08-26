@@ -4,7 +4,6 @@ session_start();
 
 if (!isset($_SESSION['role']) || !in_array($_SESSION['role'], ['Admin', 'Saleman'])) {
    echo "<script>
-        alert('Not an admin or salesperson, redirect to the homepage or show a no-permission message.');
         window.location.href = 'index.php';
     </script>";
     header('Location: index.php');
@@ -18,11 +17,10 @@ $toastMessage = "";
 $category_sql = "SELECT category_id, category FROM wmscategory";
 $category_result = mysqli_query($conn, $category_sql);
 
-if ($_SERVER["REQUEST_METHOD"] === "POST") {
+if ($_SERVER["REQUEST_METHOD"] === "POST") {  
     $item_name = $_POST['item_name'] ?? '';
     $quantity = $_POST['quantity'] ?? 1;
     $unit_price = $_POST['unit_price'] ?? 0;
-    $note = $_POST['note'] ?? '';
     $category_id = $_POST['category_id'] ?? 0;
     $date = date("Y-m-d");
     $time = date("H:i:s");
@@ -111,7 +109,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     skip_session_append:;
 }
 
-$items_sql = "SELECT item_name, quantity, item_code, note, image_path, unit_price FROM wmsitem ORDER BY item_id DESC LIMIT 10";
+$items_sql = "SELECT item_name, quantity, item_code, image_path, unit_price FROM wmsitem ORDER BY item_id DESC LIMIT 10";
 $items_result = mysqli_query($conn, $items_sql);
 ?>
 <!DOCTYPE html>
@@ -148,11 +146,11 @@ $items_result = mysqli_query($conn, $items_sql);
     }
     .order-container, .product-list { flex: 1; }
     h2 { margin-bottom: 25px; color: #333; }
-    input, textarea, select {
+    input, select {
       width: 100%; padding: 12px; margin-bottom: 18px;
       border: 1px solid #ccc; border-radius: 8px; font-size: 15px;
     }
-    input:focus, textarea:focus, select:focus {
+    input:focus, select:focus {
       border-color: #007bff;
       box-shadow: 0 0 12px rgba(0, 123, 255, 0.4);
       outline: none;
@@ -213,7 +211,6 @@ $items_result = mysqli_query($conn, $items_sql);
         <input type="number" name="quantity" placeholder="Quantity" min="1" required>
         <input type="text" id="itemCodeInput" name="item_code" placeholder="Item Code (13 digits, optional)" pattern="\d{13}" maxlength="13" title="Enter exactly 13 digits">
         <input type="number" name="unit_price" placeholder="Unit Price" min="0" step="0.01" required>
-        <textarea name="note" placeholder="Additional Notes (optional)" rows="3"></textarea>
         <input type="file" name="image" accept="image/jpeg, image/png">
 
         <div class="button-group">
@@ -234,9 +231,7 @@ $items_result = mysqli_query($conn, $items_sql);
               <h4><?= htmlspecialchars($item['item_name']) ?> (<?= htmlspecialchars($item['item_code']) ?>)</h4>
               <p>Quantity: <?= htmlspecialchars($item['quantity']) ?></p>
               <p>Unit Price: RM <?= number_format($item['unit_price'], 2) ?></p>
-              <?php if (!empty($item['note'])): ?>
-                <p>Note: <?= htmlspecialchars($item['note']) ?></p>
-              <?php endif; ?>
+              <p>Total Price : RM <?= number_format($item['unit_price'] * $item['quantity'], 2) ?></p>
             </div>
           </div>
         <?php endwhile; ?>
@@ -260,21 +255,40 @@ $items_result = mysqli_query($conn, $items_sql);
       showToast("\u26a0 This item code already exists", true);
     <?php endif; ?>
 
-    // 扫描器快速自动提交逻辑
-    let scanTimer = null;
-    const itemCodeInput = document.querySelector('input[name="item_code"]');
-    const form = document.querySelector('form');
+// 扫描器快速自动提交逻辑 + 自动填充资料
+let lastInputTime = null;
+const itemCodeInput = document.querySelector('input[name="item_code"]');
+const form = document.querySelector('form');
 
-    itemCodeInput.addEventListener('input', function () {
-      const value = itemCodeInput.value;
-      if (/^\d{13}$/.test(value)) {
-        const now = Date.now();
-        if (scanTimer && now - scanTimer < 500) {
-          form.submit();
-        }
-        scanTimer = now;
-      }
-    });
+itemCodeInput.addEventListener('input', function () {
+  const value = itemCodeInput.value;
+
+  if (/^\d{13}$/.test(value)) {
+    const now = Date.now();
+
+    if (lastInputTime && now - lastInputTime < 500) {
+      console.log("Scanner detected → fetch item info");
+
+      // AJAX 去服务器取资料
+      fetch("get_item.php?item_code=" + value)
+        .then(res => res.json())
+        .then(data => {
+          if (data.status === "success") {
+            document.querySelector('input[name="item_name"]').value = data.data.item_name;
+            document.querySelector('select[name="category_id"]').value = data.data.category_id;
+            document.querySelector('input[name="unit_price"]').value = data.data.unit_price;
+            document.querySelector('input[name="quantity"]').value = 1; // 默认数量 1
+            // 自动提交
+            form.submit();
+          } else {
+            alert("⚠️ Item not found in database, please add manually!");
+          }
+        });
+    }
+
+    lastInputTime = now;
+  }
+});
   </script>
 </body>
 </html>

@@ -2,17 +2,16 @@
 session_start();
 include_once('db.php');
 
-$items = $_POST['items'] ?? ($_SESSION['check_list_out'] ?? []);
+$items = $_POST['items'] ?? ($_SESSION['check_list_in'] ?? []);
 
 $message = '';
 $toastType = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $successCount = 0;
-    $failed = [];
 
-    // 把 check_list 保存到 session（不要放在循环里）
-    $_SESSION['check_list_out'] = $items; 
+    // 保存 check_list 到 session
+    $_SESSION['check_list_in'] = $items; 
 
     foreach ($items as $item) {
         $item_id = $item['item_id'];
@@ -20,49 +19,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $item_name = $item['item_name'];
         $unit_price = $item['unit_price'];
         $image_path = $item['image_path'];
-        $qty_to_deduct = (int)$item['quantity'];  // ✅ 从表单里取数量
+        $qty_to_add = (int)$item['quantity'];  // ✅ 补货数量
         $date = date("Y-m-d");
         $time = date("H:i:s");
 
-        // 查询库存
-        $stmt = $conn->prepare("SELECT quantity FROM wmsitem WHERE item_id = ?");
-        $stmt->bind_param("i", $item_id);
-        $stmt->execute();
-        $stmt->bind_result($current_qty);
-        $stmt->fetch();
-        $stmt->close();
-
-        if ($current_qty >= $qty_to_deduct) {
-            // 扣减库存
-            $stmt = $conn->prepare("UPDATE wmsitem SET quantity = quantity - ? WHERE item_id = ?");
-            $stmt->bind_param("ii", $qty_to_deduct, $item_id);
+        if ($qty_to_add > 0) {
+            // ✅ 增加库存
+            $stmt = $conn->prepare("UPDATE wmsitem SET quantity = quantity + ? WHERE item_id = ?");
+            $stmt->bind_param("ii", $qty_to_add, $item_id);
             $stmt->execute();
             $stmt->close();
 
-            // 插入出库记录
-            $stmt = $conn->prepare("INSERT INTO wmsstock_out (item_id, item_code, item_name, quantity, unit_price, image_path, date, time)
-                                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-            $stmt->bind_param("issidsss", $item_id, $item_code, $item_name, $qty_to_deduct, $unit_price, $image_path, $date, $time);
-            $stmt->execute();
-            $stmt->close();
+ // ✅ 插入补货记录到 wmsitem_log
+$status = 'restock';
+$stmt = $conn->prepare("INSERT INTO wmsitem_log (item_id, item_quantity,status, date, time) VALUES (?, ?, ?, ?, ?)");
+$stmt->bind_param("iisss", $item_id,$qty_to_add, $status, $date, $time);
+// echo "INSERT INTO wmsitem_log (item_id, item_quantity,status, date, time) VALUES ($item_id,$qty_to_add, $status, $date, $time)";
+$stmt->execute();
+$stmt->close();
 
-            $successCount++;
-        } else {
-            $failed[] = $item_code . "（库存不足）";
+$successCount++;
+
         }
     }
 
-    unset($_SESSION['check_list_out']); // 出库完成清空
+    unset($_SESSION['check_list_in']); // 补货完成清空
 
-    if (count($failed) === 0) {
-        $toastType = 'success';
-        $message = "✅ 成功出库 {$successCount} 项货物。";
-    } else {
-        $toastType = 'error';
-        $message = "✅ 成功出库 {$successCount} 项货物。❌ 以下出库失败：" . implode(', ', $failed);
-    }
+ if ($successCount > 0) {
+    $toastType = 'success';
+    $message = "✅ 成功补货 {$successCount} 项货物。";
+} else {
+    $toastType = 'error';
+    $message = "❌ 没有任何货物被补货。";
+}
+
 }
 ?>
+
 
 
 
@@ -231,11 +224,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </head>
 <body>
 
-<h2>📋 Stock Out - Check List</h2>
+<h2>📋 Restock Check List</h2>
 
 <div class="card">
   <?php if (count($items) === 0 && !$message): ?>
-    <p class="alert">⚠️ 没有货物可供检查。</p>
+    <p class="alert">⚠️ No items available for checking。</p>
   <?php else: ?>
     <form method="POST">
       <table>
@@ -278,7 +271,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </tbody>
 
       </table>
-      <button type="submit" class="btn">✅ 确认并出库</button>
+      <button type="submit" class="btn">✅ Confirm and Restock</button>
     </form>
   <?php endif; ?>
 </div>

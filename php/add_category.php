@@ -3,8 +3,7 @@ include_once('db.php');
 session_start();
 
 if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'Admin') {
-      echo "<script>
-        alert('You do not have permission to access this page!');
+      echo "<script>  
         window.location.href = 'index.php';
     </script>";
     exit;
@@ -121,7 +120,7 @@ $categories = $conn->query("SELECT category_id, category FROM wmscategory ORDER 
     button {
       width: 100%;
       padding: 14px;
-      background-color: #a18cd1;
+      background-color: #00b300;
       border: none;
       color: white;
       font-weight: bold;
@@ -145,13 +144,13 @@ $categories = $conn->query("SELECT category_id, category FROM wmscategory ORDER 
     }
 
     .back-button {
-      background-color: #bbb;
-      color: #333;
+      background-color: #a18cd1;
+      color: #f9f5f5ff;
       margin-top: 10px;
     }
 
     .back-button:hover {
-      background-color: #999;
+      background-color: #b19ae6ff;
     }
 
     .toast-container {

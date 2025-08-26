@@ -13,7 +13,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $item_code = $item['item_code'];
             $quantity = $item['quantity'];
             $unit_price = $item['unit_price'];
-            $note = '';
             $image_path = $item['image_path'] ?? '';
             $date = date("Y-m-d");
             $time = date("H:i:s");
@@ -25,22 +24,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $check_stmt->store_result();
 
             if ($check_stmt->num_rows == 0) {
-                // 插入新物品
-                $stmt = $conn->prepare("INSERT INTO wmsitem (item_name, quantity, item_code, note, image_path, date, time, category_id, unit_price)
-                                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
-                $stmt->bind_param("sisssssdi", $item_name, $quantity, $item_code, $note, $image_path, $date, $time, $category_id, $unit_price);
+                $stmt = $conn->prepare("INSERT INTO wmsitem (item_name, quantity, item_code, image_path, date, time, category_id, unit_price)
+                                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+                $stmt->bind_param("sissssdi", $item_name, $quantity, $item_code, $image_path, $date, $time, $category_id, $unit_price);
                 $stmt->execute();
 
-                // 获取刚插入的 item_id
                 $new_item_id = $stmt->insert_id;
 
-                // 插入日志记录，status 为 in
-                $log_stmt = $conn->prepare("INSERT INTO wmsitem_log (item_id, status, date, time) VALUES (?, 'in', ?, ?)");
-                $log_stmt->bind_param("iss", $new_item_id, $date, $time);
-                 $log_stmt->execute();
-                // for ($i = 0; $i < $quantity; $i++) {
-                   
-                // }
+                $log_stmt = $conn->prepare("INSERT INTO wmsitem_log (item_id,item_quantity, status, date, time) VALUES (?, ?,'in', ?, ?)");
+                $log_stmt->bind_param("iiss", $new_item_id,$quantity, $date, $time);
+                $log_stmt->execute();
                 $log_stmt->close();
 
                 $stmt->close();
@@ -54,9 +47,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         unset($_SESSION['check_list']);
         $status = $all_success ? "success" : "error";
         header("Location: check_list.php?status=" . $status);
-        exit();
-    } elseif (isset($_POST['return'])) {
-        header("Location: stock_order.php");
         exit();
     }
 }
@@ -125,13 +115,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       box-shadow: 0 2px 6px rgba(0,0,0,0.15);
     }
 
-    .no-data {
-      text-align: center;
-      font-size: 18px;
-      color: #888;
-      padding: 40px 0;
-    }
-
     .btn {
       display: inline-block;
       margin-top: 30px;
@@ -152,28 +135,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       transform: scale(1.05);
     }
 
-    .btn-container {
-      text-align: center;
+    .quantity-control {
       display: flex;
       justify-content: center;
-      gap: 20px;
-      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
     }
 
-    @media screen and (max-width: 600px) {
-      th, td {
-        font-size: 14px;
-        padding: 10px;
-      }
+    .qty-btn {
+      width: 30px;
+      height: 30px;
+      background: #8a76c4;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 16px;
+    }
 
-      .btn {
-        width: 100%;
-      }
+    .qty-btn:hover {
+      background: #6f5aa6;
+    }
 
-      .btn-container {
-        flex-direction: column;
-        gap: 10px;
-      }
+    .qty-value {
+      min-width: 40px;
+      display: inline-block;
+      text-align: center;
+      font-weight: bold;
     }
 
     .toast-container {
@@ -209,42 +197,52 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <h2>🧾 Check List — Confirm New Items</h2>
 
     <?php if (!empty($check_list)): ?>
-      <table>
-        <thead>
-          <tr>
-            <th>Photo</th>
-            <th>Item Name</th>
-            <th>Item Code</th>
-            <th>Quantity</th>
-            <th>Unit Price (RM)</th>
-            <th>Category</th>
-          </tr>
-        </thead>
-        <tbody>
-          <?php foreach ($check_list as $item): ?>
-            <tr>
-              <td>
-                <img src="<?= htmlspecialchars($item['image_path'] ?? 'https://via.placeholder.com/60') ?>"
-                     class="product-img" alt="Item Image">
-              </td>
-              <td><?= htmlspecialchars($item['item_name']) ?></td>
-              <td><?= htmlspecialchars($item['item_code']) ?></td>
-              <td><?= htmlspecialchars($item['quantity']) ?></td>
-              <td><?= number_format($item['unit_price'], 2) ?></td>
-              <td><?= htmlspecialchars($item['category'] ?? '-') ?></td>
-            </tr>
-          <?php endforeach; ?>
-        </tbody>
-      </table>
+      <form method="post">
+        <table>
+ <thead>
+  <tr>
+    <th>Photo</th>
+    <th>Item Name</th>
+    <th>Item Code</th>
+    <th>Quantity</th>
+    <th>Total Price (RM)</th>
+    <th>Category</th>
+  </tr>
+</thead>
+<tbody>
+  <?php foreach ($check_list as $index => $item): ?>
+    <tr>
+      <td>
+        <img src="<?= htmlspecialchars($item['image_path'] ?? 'https://via.placeholder.com/60') ?>"
+            class="product-img" alt="Item Image">
+      </td>
+      <td><?= htmlspecialchars($item['item_name']) ?></td>
+      <td><?= htmlspecialchars($item['item_code']) ?></td>
+      <td>
+        <div class="quantity-control">
+          <button type="button" class="qty-btn" onclick="changeQty(<?= $index ?>, -1)">-</button>
+          <span class="qty-value" id="qty-<?= $index ?>"><?= htmlspecialchars($item['quantity']) ?></span>
+          <button type="button" class="qty-btn" onclick="changeQty(<?= $index ?>, 1)">+</button>
+        </div>
+        <input type="hidden" name="items[<?= $index ?>][quantity]" id="input-qty-<?= $index ?>" value="<?= htmlspecialchars($item['quantity']) ?>">
+        <input type="hidden" name="items[<?= $index ?>][unit_price]" id="input-price-<?= $index ?>" value="<?= htmlspecialchars($item['unit_price']) ?>">
+      </td>
+      <td id="price-<?= $index ?>"><?= number_format($item['quantity'] * $item['unit_price'], 2) ?></td>
+      <td><?= htmlspecialchars($item['category'] ?? '-') ?></td>
+    </tr>
+  <?php endforeach; ?>
+</tbody>
 
-      <form method="post" class="btn-container">
-        <button type="submit" name="return" class="btn">Return to Edit</button>
-        <button type="submit" name="confirm" class="btn">Confirm & Save</button>
+        </table>
+
+        <div class="btn-container" style="text-align:center; margin-top:20px;">
+          <button type="submit" name="confirm" class="btn">Confirm & Save</button>
+        </div>
       </form>
     <?php else: ?>
       <div class="no-data">
         No items to check.<br><br>
-        <a href="stock_order.php" class="btn">Back to Stock Order</a>
+        <a href="index.php" class="btn">Go Back</a>
       </div>
     <?php endif; ?>
   </div>
@@ -252,6 +250,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <div class="toast-container" id="toastContainer"></div>
 
   <script>
+     function changeQty(index, delta) {
+      const qtyEl = document.getElementById("qty-" + index);
+      const inputQty = document.getElementById("input-qty-" + index);
+      const inputPrice = document.getElementById("input-price-" + index);
+      const priceEl = document.getElementById("price-" + index);
+
+      let qty = parseInt(qtyEl.textContent);
+      const unitPrice = parseFloat(inputPrice.value);
+
+      qty = Math.max(1, qty + delta); // 最少为 1
+      qtyEl.textContent = qty;
+      inputQty.value = qty;
+
+      priceEl.textContent = (qty * unitPrice).toFixed(2);
+    }
+
     function getQueryParam(name) {
       const url = new URL(window.location.href);
       return url.searchParams.get(name);
