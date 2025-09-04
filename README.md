@@ -35,7 +35,7 @@ Prompt shown after confirmation.
 View details in Order History.
 
 2. Stock Out
-
+<img src="Screenshot 2025-09-04 084847.png" />
 Remove stock by:
 
 Manual code entry
